@@ -120,7 +120,8 @@ of each section.
 - **Bundle**: ~230 KB gzipped JS is shared (React/Next ≈ 165 KB, Motion ≈ 47 KB); routes add 5–65 KB. The
   1.9 MB engine (wasm) loads only when a game or analysis starts. Converting Motion to `LazyMotion` would save
   roughly 15–20 KB but touches every animated component, so it was left for later.
-- **Docker**: the backend image is built and smoke-tested in CI; the frontend image (Next standalone) was built
-  and run locally. `docker compose up` itself was not run end-to-end in the sandbox.
+- **Docker**: the backend image is built and smoke-tested in CI; the frontend image (Next standalone) and the whole
+  stack via `docker compose up` were built and run locally (API healthy with Stockfish and 4,000 puzzles, web
+  app serving pages, engine files and puzzle data).
 - **`/lab`** is a development-only page for exercising board animations (capture, castling, en passant,
   promotion, check, mate, ghost); production builds return 404 for it.
