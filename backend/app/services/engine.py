@@ -108,12 +108,13 @@ class EnginePool:
             raise EngineUnavailableError(msg)
         engine: chess.engine.SimpleEngine | None = None
         try:
-            engine = self._take_idle() or self._start()
+            engine = self._take_live_idle() or self._start()
             try:
                 yield engine
             except ENGINE_ERRORS as exc:
                 self._discard(engine)
                 engine = None
+                self._probe = None  # re-check on the next health probe
                 msg = f"engine failure: {exc!r}"
                 raise EngineUnavailableError(msg) from exc
         finally:
@@ -131,6 +132,18 @@ class EnginePool:
     def _take_idle(self) -> chess.engine.SimpleEngine | None:
         with self._lock:
             return self._idle.pop() if self._idle else None
+
+    def _take_live_idle(self) -> chess.engine.SimpleEngine | None:
+        """An idle engine that still answers (dead ones are dropped)."""
+        while (engine := self._take_idle()) is not None:
+            try:
+                engine.ping()
+            except ENGINE_ERRORS:
+                LOG.warning("dropping an idle engine that stopped responding")
+                self._discard(engine)
+                continue
+            return engine
+        return None
 
     def _give_back(self, engine: chess.engine.SimpleEngine) -> None:
         with self._lock:

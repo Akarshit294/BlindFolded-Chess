@@ -63,18 +63,36 @@ def test_pool_reuses_engines(stockfish_path: str) -> None:
     assert pool.available() is False
 
 
+def _use_dead_engine(pool: EnginePool) -> None:
+    with pool.acquire() as engine:
+        engine.quit()  # the process is gone: the next command fails
+        engine.analyse(chess.Board(), chess.engine.Limit(depth=2))
+
+
 @pytest.mark.requires_stockfish
-def test_crashed_engine_is_replaced(stockfish_path: str) -> None:
+def test_engine_failure_in_use_is_a_clean_error(stockfish_path: str) -> None:
+    pool = EnginePool(stockfish_path, size=1)
+    try:
+        assert pool.available() is True
+        with pytest.raises(EngineUnavailableError, match="engine failure"):
+            _use_dead_engine(pool)
+        with pool.acquire() as replacement:
+            assert "score" in replacement.analyse(chess.Board(), chess.engine.Limit(depth=2))
+        assert pool.available() is True
+    finally:
+        pool.close()
+
+
+@pytest.mark.requires_stockfish
+def test_idle_engine_that_died_is_replaced(stockfish_path: str) -> None:
     pool = EnginePool(stockfish_path, size=1)
     try:
         with pool.acquire() as engine:
-            engine.quit()  # the process is gone; the next command fails
-        with pytest.raises(EngineUnavailableError, match="engine failure"), pool.acquire() as same:
-            same.analyse(chess.Board(), chess.engine.Limit(depth=2))
-        assert same is engine
-        with pool.acquire() as replacement:
-            assert replacement is not engine
-            assert "score" in replacement.analyse(chess.Board(), chess.engine.Limit(depth=2))
+            pass
+        engine.quit()  # dies while idle in the pool
+        with pool.acquire() as fresh:
+            assert fresh is not engine
+            assert "score" in fresh.analyse(chess.Board(), chess.engine.Limit(depth=2))
     finally:
         pool.close()
 

@@ -136,7 +136,9 @@ def drill_position(rng: random.Random, pieces: int, puzzles: SolverPositions | N
     if not MIN_PIECES <= pieces <= MAX_PIECES:
         msg = f"pieces must be between {MIN_PIECES} and {MAX_PIECES}"
         raise ValueError(msg)
-    candidates = sorted(puzzles.with_pieces(pieces), key=lambda puzzle: puzzle.id) if puzzles else []
+    candidates = []
+    if puzzles is not None:
+        candidates = sorted(puzzles.with_pieces(pieces), key=lambda puzzle: puzzle.id)
     if candidates:
         return DrillPosition(board=rng.choice(candidates).solver_board(), source="puzzle")
     simulated = simulated_position(rng, pieces)
