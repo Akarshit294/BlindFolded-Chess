@@ -1,17 +1,16 @@
 "use client";
 import { motion } from "motion/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DRILLS } from "@/components/drills/catalog";
-import { ReplayViewer } from "@/components/game/ReplayViewer";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Controls";
 import { IconDownload, IconTrash, IconUpload } from "@/components/ui/Icons";
 import { Modal } from "@/components/ui/Modal";
-import { analyzeGame, type GameAnalysis } from "@/lib/analysis/analyze";
 import { getLevel } from "@/lib/engine/levels";
-import { describeResult } from "@/lib/game/rules";
+import { describeResult } from "@/lib/game/result";
 import {
   activityGrid,
   activityTimestamps,
@@ -27,10 +26,15 @@ import {
 import { clearProgress, exportProgress, getRatings, importProgress, listGames, listPuzzleAttempts, listSessions, onProgressChange } from "@/lib/storage/db";
 import type { DrillSession, GameRecord, PuzzleAttempt, Ratings } from "@/lib/storage/types";
 import { cn } from "@/lib/utils/cn";
-import { formatDuration, formatRelativeDay } from "@/lib/utils/format";
+import { formatDuration, formatRelativeDay, plural } from "@/lib/utils/format";
 import { BarList, EmptyChart, Heatmap, LineChart, SERIES_COLORS, Sparkline } from "./charts";
 
 type Data = { games: GameRecord[]; sessions: DrillSession[]; puzzles: PuzzleAttempt[]; ratings: Ratings };
+
+// The replay brings in the board, chess.js and the engine client: load it on demand
+// (warmed up when the pointer or focus reaches a Replay button).
+const ReplayModal = dynamic(() => import("./ReplayModal").then((m) => m.ReplayModal));
+const preloadReplay = () => void import("./ReplayModal");
 
 const GOAL_NAMES: Record<string, string> = { mate1: "Mate in 1", mate2: "Mate in 2", mate3: "Mate in 3", win: "Winning move" };
 const VIS_NAMES: Record<string, string> = { full: "Full", ghost: "Ghost", silhouette: "Silhouette", empty: "Empty", blind: "Blindfold" };
@@ -113,7 +117,7 @@ export function StatsDashboard() {
   const runImport = async (mode: "merge" | "replace") => {
     try {
       const r = await importProgress(pendingImport, mode);
-      setImportMsg(`Imported ${r.games} games, ${r.sessions} drill sessions and ${r.puzzles} puzzle attempts.`);
+      setImportMsg(`Imported ${plural(r.games, "game")}, ${plural(r.sessions, "drill session")} and ${plural(r.puzzles, "puzzle attempt")}.`);
     } catch (e) {
       setImportMsg(e instanceof Error ? e.message : "Import failed.");
     }
@@ -359,7 +363,7 @@ export function StatsDashboard() {
                       <td className="py-2.5 tabular text-ivory-300">{g.peeksUsed}</td>
                       <td className="py-2.5 tabular text-ivory-300">{g.illegalAttempts}</td>
                       <td className="py-2.5 text-right">
-                        <Button size="sm" variant="ghost" onClick={() => setReplay(g)}>
+                        <Button size="sm" variant="ghost" onClick={() => setReplay(g)} onPointerEnter={preloadReplay} onFocus={preloadReplay}>
                           Replay
                         </Button>
                       </td>
@@ -411,33 +415,5 @@ export function StatsDashboard() {
 
       {replay ? <ReplayModal game={replay} onClose={() => setReplay(null)} /> : null}
     </div>
-  );
-}
-
-function ReplayModal({ game, onClose }: { game: GameRecord; onClose: () => void }) {
-  const [analysis, setAnalysis] = useState<GameAnalysis | null>(null);
-  const [progress, setProgress] = useState(0);
-  const run = useCallback(() => {
-    const ctrl = new AbortController();
-    analyzeGame(game.moves, { signal: ctrl.signal, onProgress: (d, t) => setProgress(d / t) })
-      .then(setAnalysis)
-      .catch(() => undefined);
-    return () => ctrl.abort();
-  }, [game.moves]);
-  useEffect(() => (game.moves.length >= 2 ? run() : undefined), [run, game.moves.length]);
-  return (
-    <Modal open onClose={onClose} title={`${describeResult(game.result!, game.config.playerColor).title} vs ${getLevel(game.config.levelId).name}`} className="max-w-5xl">
-      {!analysis && game.moves.length >= 2 ? (
-        <div className="mb-3 flex items-center gap-3 text-xs text-ivory-400">
-          Analysing…
-          <div className="h-1.5 w-48 overflow-hidden rounded-full bg-night-700">
-            <motion.div className="h-full origin-left bg-moon-400" animate={{ scaleX: progress }} />
-          </div>
-        </div>
-      ) : null}
-      <div className="max-h-[75vh] overflow-y-auto">
-        <ReplayViewer moves={game.moves} analysis={analysis} orientation={game.config.playerColor === "w" ? "white" : "black"} />
-      </div>
-    </Modal>
   );
 }

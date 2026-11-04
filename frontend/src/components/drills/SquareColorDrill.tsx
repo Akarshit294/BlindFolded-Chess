@@ -1,24 +1,10 @@
 "use client";
 import { useState } from "react";
 import { squareColorQuestion, type SquareColorQ } from "@/lib/drills/generators";
-import { DrillRunner, type DrillMeta, type QuestionProps } from "./DrillRunner";
+import { SQUARE_COLOR_META } from "./catalog";
+import { DrillRunner, type QuestionProps } from "./DrillRunner";
 import { MiniGrid } from "./MiniGrid";
 import { ChoiceButtons, Prompt, Sq } from "./shared";
-
-export const SQUARE_COLOR_META: DrillMeta = {
-  id: "square-color",
-  title: "Square colour",
-  tagline: "The foundation of board vision: know the colour of any square instantly, without looking.",
-  levels: [
-    { name: "Guided", blurb: "A colourless grid shows where the square is." },
-    { name: "Blind", blurb: "Just the square's name. Picture it." },
-    { name: "Quick", blurb: "No grid, and aim for under two seconds." },
-    { name: "Pairs", blurb: "Are two squares the same colour?" },
-  ],
-  timedSeconds: 60,
-  standardCount: 20,
-  unit: "squares",
-};
 
 function Swatch({ shade }: { shade: "light" | "dark" }) {
   return <span className="h-7 w-7 rounded-md ring-1 ring-inset ring-ivory-50/20" style={{ background: shade === "light" ? "var(--sq-light)" : "var(--sq-dark)" }} />;

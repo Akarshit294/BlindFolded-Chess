@@ -4,23 +4,9 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Board } from "@/components/board/Board";
 import { checkKnightRoute, knightRouteQuestion, parseSquareList, type KnightRouteQ } from "@/lib/drills/generators";
-import { DrillRunner, type DrillMeta, type QuestionProps } from "./DrillRunner";
+import { KNIGHT_META } from "./catalog";
+import { DrillRunner, type QuestionProps } from "./DrillRunner";
 import { Prompt, Sq, SquareEntry } from "./shared";
-
-export const KNIGHT_META: DrillMeta = {
-  id: "knight-routes",
-  title: "Knight routes",
-  tagline: "Find the shortest knight path between two squares in your head. Type the squares the knight lands on.",
-  levels: [
-    { name: "Hops", blurb: "One or two moves away." },
-    { name: "Journeys", blurb: "Exactly three moves." },
-    { name: "Expeditions", blurb: "Four to six moves — corner to corner." },
-    { name: "Minefield", blurb: "Avoid forbidden squares on the way." },
-  ],
-  timedSeconds: 120,
-  standardCount: 10,
-  unit: "routes",
-};
 
 function knightFen(sq: Square): string {
   const rows: string[] = [];

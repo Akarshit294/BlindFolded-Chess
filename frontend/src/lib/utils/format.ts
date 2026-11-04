@@ -31,3 +31,8 @@ export function formatRelativeDay(ts: number, now = Date.now()): string {
 export function pct(value: number, digits = 0): string {
   return `${value.toFixed(digits)}%`;
 }
+
+/** "1 game", "3 games"; pass the plural when it isn't just "+s". */
+export function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
+}

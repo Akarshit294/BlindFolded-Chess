@@ -3,24 +3,9 @@ import type { Square } from "chess.js";
 import { useState } from "react";
 import { Board } from "@/components/board/Board";
 import { coordinateQuestion, parseSquareList, type CoordinateQ } from "@/lib/drills/generators";
-import { DrillRunner, type DrillMeta, type QuestionProps } from "./DrillRunner";
+import { COORDINATES_META } from "./catalog";
+import { DrillRunner, type QuestionProps } from "./DrillRunner";
 import { Prompt, Sq, SquareEntry } from "./shared";
-
-export const COORDINATES_META: DrillMeta = {
-  id: "coordinates",
-  title: "Coordinates",
-  tagline: "Name the highlighted square, or find the named one — from both sides of the board, without labels.",
-  levels: [
-    { name: "Find, with labels", blurb: "Click the named square. Coordinates shown." },
-    { name: "Find, no labels", blurb: "Click the named square on a bare board." },
-    { name: "Name it", blurb: "A square lights up — type its name." },
-    { name: "Black's side", blurb: "Find and name with the board flipped." },
-    { name: "Mixed", blurb: "Random side, random task." },
-  ],
-  timedSeconds: 60,
-  standardCount: 20,
-  unit: "squares",
-};
 
 const EMPTY = "8/8/8/8/8/8/8/8 w - - 0 1";
 

@@ -11,24 +11,9 @@ import { boardMapFromFen, scoreMemory } from "@/lib/drills/generators";
 import { getPosition } from "@/lib/drills/source";
 import { useSettings } from "@/lib/settings/store";
 import { cn } from "@/lib/utils/cn";
-import { DrillRunner, type DrillMeta, type QuestionProps } from "./DrillRunner";
+import { MEMORY_META } from "./catalog";
+import { DrillRunner, type QuestionProps } from "./DrillRunner";
 import { Prompt } from "./shared";
-
-export const MEMORY_META: DrillMeta = {
-  id: "memory",
-  title: "Memory",
-  tagline: "A position appears for a few seconds. Then the board clears — rebuild it piece by piece.",
-  levels: [
-    { name: "Glimpse", blurb: "4 pieces, 10 seconds." },
-    { name: "Snapshot", blurb: "6 pieces, 10 seconds." },
-    { name: "Scene", blurb: "8 pieces, 8 seconds." },
-    { name: "Middlegame", blurb: "12 pieces, 8 seconds." },
-    { name: "Photographic", blurb: "16 pieces, 6 seconds." },
-  ],
-  timedSeconds: 240,
-  standardCount: 5,
-  unit: "positions",
-};
 
 const PIECES = [4, 6, 8, 12, 16];
 const SECONDS = [10, 10, 8, 8, 6];

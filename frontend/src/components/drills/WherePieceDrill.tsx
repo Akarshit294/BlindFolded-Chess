@@ -14,24 +14,9 @@ import { useSettings } from "@/lib/settings/store";
 import { speak, stopSpeaking, ttsSupported } from "@/lib/speech/tts";
 import { mulberry32 } from "@/lib/utils/random";
 import { cn } from "@/lib/utils/cn";
-import { DrillRunner, type DrillMeta, type QuestionProps } from "./DrillRunner";
+import { WHERE_META } from "./catalog";
+import { DrillRunner, type QuestionProps } from "./DrillRunner";
 import { ChoiceButtons, Prompt, Sq, SquareEntry } from "./shared";
-
-export const WHERE_META: DrillMeta = {
-  id: "where-piece",
-  title: "Where's the piece?",
-  tagline: "Read (or listen to) a game from the start, play it in your head, then answer questions about the final position.",
-  levels: [
-    { name: "Two moves", blurb: "4 plies. Moves stay visible." },
-    { name: "Four moves", blurb: "8 plies. Moves stay visible." },
-    { name: "Six moves", blurb: "12 plies. Moves hide when you're ready." },
-    { name: "Nine moves", blurb: "18 plies. Moves hide when you're ready." },
-    { name: "By ear", blurb: "12 plies, read aloud only." },
-  ],
-  timedSeconds: 180,
-  standardCount: 5,
-  unit: "games",
-};
 
 const PLIES = [4, 8, 12, 18, 12];
 

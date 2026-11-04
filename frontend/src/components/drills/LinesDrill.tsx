@@ -4,24 +4,10 @@ import { useState } from "react";
 import { emptyBoardReach } from "@/lib/chess/squares";
 import { focusOnDesktop } from "@/lib/utils/hooks";
 import { lineQuestion, lineQuestionText, parseSquareList, type LineQ } from "@/lib/drills/generators";
-import { DrillRunner, type DrillMeta, type QuestionProps } from "./DrillRunner";
+import { LINES_META } from "./catalog";
+import { DrillRunner, type QuestionProps } from "./DrillRunner";
 import { MiniGrid, type GridMark } from "./MiniGrid";
 import { ChoiceButtons, Prompt, SquareEntry } from "./shared";
-
-export const LINES_META: DrillMeta = {
-  id: "lines",
-  title: "Diagonals & lines",
-  tagline: "See which squares share diagonals, ranks and files — the highways bishops, rooks and queens travel.",
-  levels: [
-    { name: "Same diagonal?", blurb: "Yes or no for two squares." },
-    { name: "Which line?", blurb: "Diagonal, rank, file — or none." },
-    { name: "In between", blurb: "Name every square between two squares." },
-    { name: "Reach", blurb: "How many squares does a piece control on an empty board?" },
-  ],
-  timedSeconds: 90,
-  standardCount: 15,
-  unit: "questions",
-};
 
 function Reveal({ q }: { q: LineQ }) {
   const marks: Partial<Record<Square, GridMark>> = {};

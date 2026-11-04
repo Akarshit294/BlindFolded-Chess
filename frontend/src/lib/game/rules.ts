@@ -1,6 +1,6 @@
 /** Game helpers on top of chess.js: replay, result detection, result copy. */
 import { Chess, type Move, type Square } from "chess.js";
-import type { GameResult, ResultReason } from "@/lib/storage/types";
+import type { GameResult } from "@/lib/storage/types";
 
 export function uciToMove(uci: string): { from: Square; to: Square; promotion?: string } {
   return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square, promotion: uci.length > 4 ? uci[4] : undefined };
@@ -40,31 +40,7 @@ export function canWinOnTime(chess: Chess, color: "w" | "b"): boolean {
   return true;
 }
 
-export type Outcome = "win" | "loss" | "draw";
-
-const REASON_TEXT: Record<ResultReason, string> = {
-  checkmate: "by checkmate",
-  stalemate: "by stalemate",
-  threefold: "by threefold repetition",
-  "fifty-move": "by the 50-move rule",
-  insufficient: "by insufficient material",
-  resign: "by resignation",
-  timeout: "on time",
-  agreement: "by agreement",
-};
-
-export function describeResult(result: GameResult, player: "w" | "b"): { outcome: Outcome; title: string; detail: string } {
-  if (result.winner === null) return { outcome: "draw", title: "Draw", detail: `Drawn ${REASON_TEXT[result.reason]}.` };
-  const won = result.winner === player;
-  const winnerName = result.winner === "w" ? "White" : "Black";
-  if (result.reason === "checkmate") return { outcome: won ? "win" : "loss", title: won ? "Checkmate. You win." : "Checkmated.", detail: `${winnerName} wins ${REASON_TEXT.checkmate}.` };
-  return { outcome: won ? "win" : "loss", title: won ? "You win." : "You lost.", detail: `${winnerName} wins ${REASON_TEXT[result.reason]}.` };
-}
-
-export function scoreFor(result: GameResult, player: "w" | "b"): number {
-  if (result.winner === null) return 0.5;
-  return result.winner === player ? 1 : 0;
-}
+export { describeResult, scoreFor, type Outcome } from "./result";
 
 export function kingSquare(chess: Chess, color: "w" | "b"): Square | null {
   return (chess.findPiece({ type: "k", color })[0] as Square | undefined) ?? null;
