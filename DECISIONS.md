@@ -102,3 +102,25 @@ of each section.
 - 422 errors use FastAPI's list format; 404/503 use `{"detail": …}`. `/api/analysis` returns 503 when the engine
   is missing, crashed or busy for > 20 s, and caps each position at 1 s for slow free-tier CPUs.
 - `httpx2` is the test client dependency (Starlette 1.10's TestClient moved to it).
+
+## Polish passes
+- **Mobile**: every responsive grid has an explicit `grid-cols-1` base with `minmax(0, …)` tracks — without it the
+  board's `aspect-square` collapsed to zero width and the landing page overflowed at 390 px. Covered by e2e
+  "no horizontal overflow" tests and a CDP-driven touch-drag test.
+- **Autofocus** of text inputs happens only on devices with a fine pointer, and never scrolls; on phones it
+  popped the keyboard and pushed the page under the sticky header.
+- **Clock and navigation**: leaving the Play page (or refreshing) pauses the clock; time away is not counted.
+- **Contrast**: muted text `ivory-500` was raised to `#8f897d` (≥ 4.9:1 on every surface). Board coordinates
+  use darker text on light squares and deep text on mid-tone dark squares so every theme passes 4.5:1;
+  Nocturne's dark square moved from `#6f7a96` to `#69748f` for white coordinates.
+- **LCP**: page headers animate with CSS (`.rise-in`, starting at 30 % opacity) instead of Motion, so they paint
+  before hydration; client-only pages (Play, Stats) render their headers while their data loads.
+- **Lighthouse** (mobile, simulated throttling) after the passes: accessibility, best practices and SEO 100 on
+  landing, play, puzzles, train and stats; performance 90–93 on landing/play/puzzles/train.
+- **Bundle**: ~230 KB gzipped JS is shared (React/Next ≈ 165 KB, Motion ≈ 47 KB); routes add 5–65 KB. The
+  1.9 MB engine (wasm) loads only when a game or analysis starts. Converting Motion to `LazyMotion` would save
+  roughly 15–20 KB but touches every animated component, so it was left for later.
+- **Docker**: the backend image is built and smoke-tested in CI; the frontend image (Next standalone) was built
+  and run locally. `docker compose up` itself was not run end-to-end in the sandbox.
+- **`/lab`** is a development-only page for exercising board animations (capture, castling, en passant,
+  promotion, check, mate, ghost); production builds return 404 for it.

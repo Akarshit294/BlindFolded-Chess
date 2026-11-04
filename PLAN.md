@@ -97,7 +97,7 @@ Legend: `[x]` done · `[ ]` open · `[~]` done with a documented deviation (see 
 - [x] Micro-interactions on buttons; skeleton loaders
 - [x] Web Audio synthesized sounds (move, capture, check, castle, illegal, game end, correct, wrong…) + volume
 - [x] prefers-reduced-motion respected + in-app setting
-- [ ] Mobile-first, responsive, touch drag
+- [x] Mobile-first, responsive, touch drag
 - [x] Keyboard accessible; ARIA live region announces moves
 
 ## M6 — Engineering
@@ -108,13 +108,13 @@ Legend: `[x]` done · `[ ]` open · `[~]` done with a documented deviation (see 
 - [x] Deploy-ready: `render.yaml` (free), Hugging Face Spaces Dockerfile, `NEXT_PUBLIC_API_URL`, DEPLOY.md
 
 ## M7 — Verify and polish
-- [ ] Screenshots of every page and key states (mid-drag, capture, peek, check, game over) at 1440px and 390px
-- [ ] Polish pass A — visual design and animation
-- [ ] Polish pass B — UX and edge cases
-- [ ] Polish pass C — code quality, tests, accessibility, performance
-- [ ] Best screenshots in `docs/screenshots/`
+- [x] Screenshots of every page and key states (mid-drag, capture, peek, check, game over) at 1440px and 390px
+- [x] Polish pass A — visual design and animation
+- [x] Polish pass B — UX and edge cases
+- [x] Polish pass C — code quality, tests, accessibility, performance
+- [x] Best screenshots in `docs/screenshots/`
 
 ## M8 — Wrap-up
-- [ ] README.md (what it is, screenshots, quickstart, architecture)
-- [ ] MORNING_REPORT.md
+- [x] README.md (what it is, screenshots, quickstart, architecture)
+- [x] MORNING_REPORT.md
 - [ ] Push branch, open PR to `main`
