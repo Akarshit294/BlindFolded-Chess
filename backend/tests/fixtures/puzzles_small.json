@@ -1,0 +1,170 @@
+{
+ "version": 1,
+ "source": "Lichess puzzle database (database.lichess.org), CC0",
+ "generated": "2026-11-04",
+ "count": 9,
+ "puzzles": [
+  {
+   "id": "6cxf1",
+   "fen": "4R3/8/5p1p/6k1/3r2P1/5PK1/8/8 b - - 1 53",
+   "moves": [
+    "d4d6",
+    "e8g8"
+   ],
+   "rating": 996,
+   "themes": [
+    "endgame",
+    "mateIn1",
+    "rookEndgame"
+   ],
+   "pieces": 8,
+   "goal": "mate1"
+  },
+  {
+   "id": "Q6dPw",
+   "fen": "8/2p3kp/2Pb2p1/BP3pK1/8/8/5P1P/8 w - - 3 33",
+   "moves": [
+    "f2f4",
+    "d6e7"
+   ],
+   "rating": 1693,
+   "themes": [
+    "bishopEndgame",
+    "endgame",
+    "mateIn1"
+   ],
+   "pieces": 12,
+   "goal": "mate1"
+  },
+  {
+   "id": "WYcMT",
+   "fen": "8/8/6k1/5qp1/6K1/8/4R1R1/8 w - - 18 80",
+   "moves": [
+    "g4g3",
+    "f5f4",
+    "g3h3",
+    "f4h4"
+   ],
+   "rating": 1088,
+   "themes": [
+    "endgame",
+    "mateIn2",
+    "queenRookEndgame"
+   ],
+   "pieces": 6,
+   "goal": "mate2"
+  },
+  {
+   "id": "mFLpj",
+   "fen": "2r1k3/6R1/p2Q4/1p6/8/P7/1Pb5/1KB2q2 w - - 0 32",
+   "moves": [
+    "b1a2",
+    "c2b3",
+    "a2a1",
+    "c8c1"
+   ],
+   "rating": 1921,
+   "themes": [
+    "discoveredAttack",
+    "endgame",
+    "mateIn2",
+    "pillsburysMate"
+   ],
+   "pieces": 12,
+   "goal": "mate2"
+  },
+  {
+   "id": "4zhml",
+   "fen": "8/6pk/R7/6PK/2r5/8/8/8 b - - 14 63",
+   "moves": [
+    "c4c2",
+    "g5g6",
+    "h7h8",
+    "a6a8",
+    "c2c8",
+    "a8c8"
+   ],
+   "rating": 1081,
+   "themes": [
+    "endgame",
+    "mateIn3",
+    "rookEndgame"
+   ],
+   "pieces": 6,
+   "goal": "mate3"
+  },
+  {
+   "id": "gifvC",
+   "fen": "8/6p1/2R3pp/3Bbk2/6n1/4BKPP/1r6/8 b - - 9 43",
+   "moves": [
+    "g4e3",
+    "d5e4",
+    "f5g5",
+    "h3h4",
+    "g5h5",
+    "e4g6"
+   ],
+   "rating": 1968,
+   "themes": [
+    "endgame",
+    "mateIn3"
+   ],
+   "pieces": 12,
+   "goal": "mate3"
+  },
+  {
+   "id": "3MYEg",
+   "fen": "8/5p2/5N2/4Pkp1/1K6/8/8/8 w - - 4 48",
+   "moves": [
+    "f6d7",
+    "g5g4",
+    "b4c3",
+    "g4g3"
+   ],
+   "rating": 1114,
+   "themes": [
+    "crushing",
+    "endgame",
+    "knightEndgame",
+    "quietMove"
+   ],
+   "pieces": 6,
+   "goal": "win"
+  },
+  {
+   "id": "hNOlm",
+   "fen": "8/7k/2R4b/7K/4pp2/8/8/8 b - - 5 54",
+   "moves": [
+    "f4f3",
+    "c6h6",
+    "h7g7",
+    "h6g6"
+   ],
+   "rating": 2081,
+   "themes": [
+    "crushing",
+    "endgame"
+   ],
+   "pieces": 6,
+   "goal": "win"
+  },
+  {
+   "id": "6yTcR",
+   "fen": "8/5pk1/8/5np1/5R2/8/8/3K4 w - - 0 52",
+   "moves": [
+    "f4f1",
+    "f5e3",
+    "d1e2",
+    "e3f1"
+   ],
+   "rating": 535,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork"
+   ],
+   "pieces": 6,
+   "goal": "win"
+  }
+ ]
+}
