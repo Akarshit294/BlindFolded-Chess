@@ -112,7 +112,7 @@ export function PuzzleTrainer() {
     startedAt.current = Date.now();
     rememberPuzzle(p.id);
     announce(`New puzzle. ${goalText(p, s.solver)}`);
-    window.setTimeout(() => inputRef.current?.focus(), 100);
+    window.setTimeout(() => inputRef.current?.focusSoft(), 100);
   }, []);
 
   // Preferences and rating live in the browser: read them after mount, then load a puzzle.

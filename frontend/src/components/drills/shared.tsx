@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Kbd } from "@/components/ui/Controls";
 import { cn } from "@/lib/utils/cn";
+import { focusOnDesktop } from "@/lib/utils/hooks";
 
 export type Choice<T> = { value: T; label: ReactNode; key: string; hint?: string; className?: string };
 
@@ -87,7 +88,7 @@ export function SquareEntry({
   const [text, setText] = useState("");
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (autoFocus && !locked) ref.current?.focus();
+    if (autoFocus && !locked) focusOnDesktop(ref.current);
   }, [autoFocus, locked]);
   const append = (ch: string) => {
     setText((t) => {
@@ -95,7 +96,7 @@ export function SquareEntry({
       const needsSpace = /^[a-h]$/.test(ch) && t.length > 0 && !t.endsWith(" ");
       return `${t}${needsSpace ? " " : ""}${ch}`;
     });
-    ref.current?.focus();
+    focusOnDesktop(ref.current);
   };
   const submit = () => {
     if (locked || !text.trim()) return;

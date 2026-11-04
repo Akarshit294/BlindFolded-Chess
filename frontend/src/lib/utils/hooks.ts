@@ -40,3 +40,16 @@ export function useVoices(): SpeechSynthesisVoice[] {
     () => EMPTY,
   );
 }
+
+/** True on devices with a mouse/trackpad; phones and tablets return false. */
+export function hasFinePointer(): boolean {
+  return typeof window !== "undefined" && !!window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
+}
+
+/**
+ * Focuses a text field without scrolling, and only on desktop: on touch devices autofocus
+ * would pop up the keyboard and scroll the page.
+ */
+export function focusOnDesktop(el: HTMLElement | null | undefined) {
+  if (el && hasFinePointer()) el.focus({ preventScroll: true });
+}

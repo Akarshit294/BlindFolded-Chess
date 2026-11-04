@@ -2,6 +2,7 @@
 import type { Square } from "chess.js";
 import { useState } from "react";
 import { emptyBoardReach } from "@/lib/chess/squares";
+import { focusOnDesktop } from "@/lib/utils/hooks";
 import { lineQuestion, lineQuestionText, parseSquareList, type LineQ } from "@/lib/drills/generators";
 import { DrillRunner, type DrillMeta, type QuestionProps } from "./DrillRunner";
 import { MiniGrid, type GridMark } from "./MiniGrid";
@@ -120,7 +121,7 @@ function NumberEntry({ locked, onSubmit }: { locked: boolean; onSubmit: (n: numb
       }}
     >
       <input
-        autoFocus
+        ref={(el) => focusOnDesktop(el)}
         inputMode="numeric"
         value={v}
         disabled={locked}

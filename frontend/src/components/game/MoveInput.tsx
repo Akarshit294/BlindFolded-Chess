@@ -14,8 +14,9 @@ import { interpretMoveText } from "@/lib/chess/parse-move";
 import { useSettings, type MoveHints } from "@/lib/settings/store";
 import { useSpeechRecognition } from "@/lib/speech/recognition";
 import { cn } from "@/lib/utils/cn";
+import { focusOnDesktop } from "@/lib/utils/hooks";
 
-export type MoveInputHandle = { focus: () => void; clear: () => void; startVoice: () => void };
+export type MoveInputHandle = { focus: () => void; focusSoft: () => void; clear: () => void; startVoice: () => void };
 
 type Props = {
   chess: Chess;
@@ -143,6 +144,7 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
 
   useImperativeHandle(ref, () => ({
     focus: () => inputRef.current?.focus(),
+    focusSoft: () => focusOnDesktop(inputRef.current),
     clear: () => {
       setText("");
       setStatus(null);
