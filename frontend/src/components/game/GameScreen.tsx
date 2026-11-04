@@ -36,7 +36,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function useNow(active: boolean, interval = 100): number {
   const [now, setNow] = useState(0);
   useEffect(() => {
-    setNow(Date.now());
     if (!active) return;
     const id = window.setInterval(() => setNow(Date.now()), interval);
     return () => window.clearInterval(id);
@@ -64,7 +63,9 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
 
   const boardRef = useRef<BoardHandle>(null);
   const inputRef = useRef<MoveInputHandle>(null);
-  const [thinking, setThinking] = useState(false);
+  const [engineError, setEngineError] = useState(false);
+  // The engine is thinking whenever it is its turn in a live game.
+  const thinking = !over && turn === engineColor && !engineError;
   const [peeking, setPeeking] = useState(false);
   const [revealed, setRevealed] = useState(over);
   const [showOver, setShowOver] = useState(over);
@@ -72,7 +73,10 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   const [analysis, setAnalysis] = useState<GameAnalysis | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ text: string; tone: "info" | "bad" | "good" } | null>(null);
+  // A refreshed page shows a small "restored" note straight away.
+  const [toast, setToast] = useState<{ text: string; tone: "info" | "bad" | "good" } | null>(() =>
+    game.moves.length > 0 && !game.result ? { text: "Game restored — carry on.", tone: "info" } : null,
+  );
   const [confirmResign, setConfirmResign] = useState(false);
   const [drawPly, setDrawPly] = useState(-99);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -87,8 +91,9 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   /* ------------------------------------------------------------------ restore after reload */
   useEffect(() => {
     useGame.getState().resumeClock();
-    if (game.moves.length > 0 && !game.result) showToast("Game restored — carry on.", "info");
-    else if (game.moves.length === 0) playSound("start");
+    if (game.moves.length === 0) playSound("start");
+    const t = window.setTimeout(() => setToast((cur) => (cur?.text.startsWith("Game restored") ? null : cur)), 2600);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
@@ -98,7 +103,6 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
       if (finishing.current || useGame.getState().game?.result) return;
       finishing.current = true;
       getEngine().stop();
-      setThinking(false);
       useGame.getState().end(result);
       const res = describeResult(result, player);
       announce(`Game over. ${res.title} ${res.detail}`, "assertive");
@@ -162,7 +166,6 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
     let cancelled = false;
     const ply = game.moves.length;
     const started = performance.now();
-    setThinking(true);
     (async () => {
       try {
         const st = useGame.getState();
@@ -177,15 +180,15 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
         const mv = legal.find((m) => m.lan === res.uci) ?? legal.find((m) => m.from === uciToMove(res.uci!).from && m.to === uciToMove(res.uci!).to);
         if (mv) commitMove(mv, "engine");
       } catch {
-        if (!cancelled) showToast("The engine failed to load. Reload the page to retry.", "bad");
-      } finally {
-        if (!cancelled) setThinking(false);
+        if (!cancelled) {
+          setEngineError(true);
+          showToast("The engine failed to load. Reload the page to retry.", "bad");
+        }
       }
     })();
     return () => {
       cancelled = true;
       getEngine().stop();
-      setThinking(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id, game.moves.length, over, turn, engineColor]);
@@ -239,7 +242,6 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   const takeback = () => {
     if (!canTakeback) return;
     getEngine().stop();
-    setThinking(false);
     stopSpeaking();
     useGame.getState().takeback(takebackPlies);
     announce("Move taken back");
@@ -271,8 +273,6 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   useEffect(() => {
     if (!showOver || analysis || game.moves.length < 2) return;
     const ctrl = new AbortController();
-    setProgress(0);
-    setAnalysisError(null);
     analyzeGame(game.moves, { signal: ctrl.signal, onProgress: (d, t) => setProgress(d / t), preferServer: !e2e.fast })
       .then(async (a) => {
         setAnalysis(a);

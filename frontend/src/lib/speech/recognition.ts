@@ -3,7 +3,7 @@
  * Web Speech API recognition (Chrome/Edge/Safari). Returns several alternatives so the
  * caller can try each against the legal moves.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type RecognitionResultList = { length: number; [i: number]: { length: number; isFinal: boolean; [j: number]: { transcript: string; confidence: number } } };
 type RecognitionEvent = { results: RecognitionResultList; resultIndex: number };
@@ -38,7 +38,9 @@ export function useSpeechRecognition(onAlternatives: (alts: string[], final: boo
   const [error, setError] = useState<string | null>(null);
   const rec = useRef<Recognition | null>(null);
   const cb = useRef(onAlternatives);
-  cb.current = onAlternatives;
+  useLayoutEffect(() => {
+    cb.current = onAlternatives;
+  });
   const supported = typeof window !== "undefined" && recognitionSupported();
 
   const stop = useCallback(() => {

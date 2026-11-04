@@ -29,7 +29,7 @@ export function GameOverPanel({ game, analysis, progress, analysisError, onRemat
   const res = describeResult(game.result!, game.config.playerColor);
   const me = game.config.playerColor === "w" ? "white" : "black";
   const accuracy = analysis?.accuracy[me] ?? null;
-  const duration = (game.endedAt ?? Date.now()) - game.startedAt;
+  const duration = (game.endedAt ?? game.updatedAt) - game.startedAt;
   const myMoves = Math.ceil((game.moves.length - (game.config.playerColor === "w" ? 0 : 1)) / 2);
   const counts = analysis?.counts[me];
   const maxCount = counts ? Math.max(1, ...Object.values(counts)) : 1;
@@ -103,11 +103,11 @@ export function GameOverPanel({ game, analysis, progress, analysisError, onRemat
         <Card className="p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-xl font-semibold text-ivory-50">Game review</h3>
-            {progress !== null && !analysis ? (
+            {!analysis && !analysisError && game.moves.length >= 2 ? (
               <div className="flex min-w-[220px] items-center gap-3 text-xs text-ivory-400" data-testid="analysis-progress">
                 <span>Analysing with Stockfish…</span>
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-night-700">
-                  <motion.div className="h-full origin-left rounded-full bg-gradient-to-r from-moon-400 to-ember-400" animate={{ scaleX: progress }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
+                  <motion.div className="h-full origin-left rounded-full bg-gradient-to-r from-moon-400 to-ember-400" initial={{ scaleX: 0 }} animate={{ scaleX: progress ?? 0 }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
                 </div>
               </div>
             ) : analysis ? (

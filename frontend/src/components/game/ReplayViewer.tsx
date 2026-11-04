@@ -41,12 +41,11 @@ export function ReplayViewer({ moves, analysis, orientation, initialPly, autoPla
   );
 
   useEffect(() => {
-    if (!playing) return;
-    if (ply >= total) {
-      setPlaying(false);
-      return;
-    }
-    const t = window.setTimeout(() => go(ply + 1), ply === 0 ? 500 : 850);
+    if (!playing || ply >= total) return;
+    const t = window.setTimeout(() => {
+      go(ply + 1);
+      if (ply + 1 >= total) setPlaying(false);
+    }, ply === 0 ? 500 : 850);
     return () => window.clearTimeout(t);
   }, [playing, ply, total, go]);
 

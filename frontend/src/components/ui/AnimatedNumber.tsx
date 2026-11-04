@@ -25,12 +25,7 @@ export function AnimatedNumber({
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (!inView) return;
-    if (reduced) {
-      mv.jump(value);
-      setDisplay(value);
-      return;
-    }
+    if (!inView || reduced) return;
     // Animates from wherever the number currently is (0 the first time).
     const controls = animate(mv, value, {
       duration,
@@ -43,7 +38,7 @@ export function AnimatedNumber({
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {display.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+      {(reduced ? value : display).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
       {suffix}
     </span>
   );

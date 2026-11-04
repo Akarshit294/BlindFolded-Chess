@@ -6,7 +6,9 @@
 import type { Move, Square } from "chess.js";
 import { Chess } from "chess.js";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { Board } from "@/components/board/Board";
 import { PieceGlyph } from "@/components/board/PieceGlyph";
 import { Confetti } from "@/components/fx/Confetti";
@@ -40,24 +42,32 @@ const DIFFICULTY: Record<Exclude<Difficulty, "auto">, [number, number]> = {
 type LogEntry = { san: string; by: "you" | "them" | "setup" };
 type Status = "loading" | "solving" | "solved" | "failed" | "empty";
 
-const PREFS_KEY = "bf:puzzle-prefs";
-
 type Prefs = { goal: PuzzleGoal | "any"; difficulty: Difficulty; maxPieces: number; applySetup: boolean };
 const DEFAULT_PREFS: Prefs = { goal: "any", difficulty: "auto", maxPieces: 12, applySetup: true };
 
-function loadPrefs(): Prefs {
-  try {
-    return { ...DEFAULT_PREFS, ...(JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}") as Partial<Prefs>) };
-  } catch {
-    return DEFAULT_PREFS;
-  }
+/** Puzzle filter preferences, persisted like the app settings (hydrated after mount). */
+const usePuzzlePrefs = create<Prefs & { update: (patch: Partial<Prefs>) => void }>()(
+  persist((set) => ({ ...DEFAULT_PREFS, update: (patch) => set(patch) }), {
+    name: "bf:puzzle-prefs",
+    storage: createJSONStorage(() => localStorage),
+    skipHydration: true,
+    partialize: ({ goal, difficulty, maxPieces, applySetup }) => ({ goal, difficulty, maxPieces, applySetup }),
+  }),
+);
+
+function filtersFor(prefs: Prefs, rating: number): PuzzleFilters {
+  const [minRating, maxRating] = prefs.difficulty === "auto" ? [rating - 250, rating + 250] : DIFFICULTY[prefs.difficulty];
+  return { goal: prefs.goal, minRating, maxRating, maxPieces: prefs.maxPieces };
 }
 
 export function PuzzleTrainer() {
   const pieceSet = useSettings((s) => s.pieceSet);
   const peekSeconds = useSettings((s) => s.peekSeconds);
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
-  const [ready, setReady] = useState(false);
+  const goal = usePuzzlePrefs((s) => s.goal);
+  const difficulty = usePuzzlePrefs((s) => s.difficulty);
+  const maxPieces = usePuzzlePrefs((s) => s.maxPieces);
+  const applySetup = usePuzzlePrefs((s) => s.applySetup);
+  const prefs: Prefs = { goal, difficulty, maxPieces, applySetup };
   const [rating, setRating] = useState(1200);
   const [solver, setSolver] = useState<"w" | "b">("w");
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
@@ -78,30 +88,7 @@ export function PuzzleTrainer() {
   const inputRef = useRef<MoveInputHandle>(null);
   const [, setFenTick] = useState(0);
 
-  // Preferences and rating come from the browser, so read them after mount (no hydration mismatch).
-  useEffect(() => {
-    setPrefs(loadPrefs());
-    void getRatings().then((r) => {
-      setRating(r.puzzles.rating);
-      setReady(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!ready) return;
-    try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-    } catch {
-      // ignore
-    }
-  }, [prefs, ready]);
-
-  const filters: PuzzleFilters = useMemo(() => {
-    const [minRating, maxRating] = prefs.difficulty === "auto" ? [rating - 250, rating + 250] : DIFFICULTY[prefs.difficulty];
-    return { goal: prefs.goal, minRating, maxRating, maxPieces: prefs.maxPieces };
-  }, [prefs, rating]);
-
-  const load = useCallback(async () => {
+  const load = useCallback(async (filters: PuzzleFilters) => {
     setStatus("loading");
     setMessage(null);
     setDelta(null);
@@ -126,14 +113,26 @@ export function PuzzleTrainer() {
     rememberPuzzle(p.id);
     announce(`New puzzle. ${goalText(p, s.solver)}`);
     window.setTimeout(() => inputRef.current?.focus(), 100);
-  }, [filters]);
+  }, []);
 
-  // Filters are keyed on rating too, so only refetch when the user changes a filter.
-  const filterKey = `${prefs.goal}|${prefs.difficulty}|${prefs.maxPieces}`;
+  // Preferences and rating live in the browser: read them after mount, then load a puzzle.
   useEffect(() => {
-    if (ready) void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, filterKey]);
+    void (async () => {
+      await usePuzzlePrefs.persist.rehydrate();
+      const r = await getRatings();
+      setRating(r.puzzles.rating);
+      await load(filtersFor(usePuzzlePrefs.getState(), r.puzzles.rating));
+    })();
+  }, [load]);
+
+  const setPrefs = (patch: Partial<Prefs>) => {
+    usePuzzlePrefs.getState().update(patch);
+    if ("goal" in patch || "difficulty" in patch || "maxPieces" in patch) void load(filtersFor({ ...prefs, ...patch }, rating));
+  };
+  const nextOne = useCallback(
+    () => void load(filtersFor({ goal, difficulty, maxPieces, applySetup }, rating)),
+    [load, goal, difficulty, maxPieces, applySetup, rating],
+  );
 
   const finish = useCallback(
     async (solved: boolean) => {
@@ -251,7 +250,7 @@ export function PuzzleTrainer() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        void load();
+        nextOne();
       }
     };
     const t = window.setTimeout(() => window.addEventListener("keydown", onKey), 300);
@@ -259,7 +258,7 @@ export function PuzzleTrainer() {
       window.clearTimeout(t);
       window.removeEventListener("keydown", onKey);
     };
-  }, [status, load]);
+  }, [status, nextOne]);
 
   const startFen = puzzle ? (prefs.applySetup ? startPuzzle(puzzle).chess.fen() : puzzle.fen) : null;
   const pieces = startFen ? piecesFromFen(startFen) : [];
@@ -305,7 +304,7 @@ export function PuzzleTrainer() {
             label="Goal"
             size="sm"
             value={prefs.goal}
-            onChange={(goal) => setPrefs((p) => ({ ...p, goal }))}
+            onChange={(g) => setPrefs({ goal: g })}
             options={(["any", "mate1", "mate2", "mate3", "win"] as const).map((g) => ({ value: g, label: g === "any" ? "Any" : g === "win" ? "Win" : GOAL_LABELS[g].replace("Mate in ", "M") }))}
           />
         </div>
@@ -315,7 +314,7 @@ export function PuzzleTrainer() {
             label="Difficulty"
             size="sm"
             value={prefs.difficulty}
-            onChange={(difficulty) => setPrefs((p) => ({ ...p, difficulty }))}
+            onChange={(d) => setPrefs({ difficulty: d })}
             options={[
               { value: "auto", label: "Auto", hint: "Near your puzzle rating" },
               { value: "easy", label: "Easy" },
@@ -331,7 +330,7 @@ export function PuzzleTrainer() {
             label="Maximum pieces"
             size="sm"
             value={prefs.maxPieces}
-            onChange={(maxPieces) => setPrefs((p) => ({ ...p, maxPieces }))}
+            onChange={(n) => setPrefs({ maxPieces: n })}
             options={[
               { value: 6, label: "6" },
               { value: 9, label: "9" },
@@ -412,6 +411,7 @@ export function PuzzleTrainer() {
                   disabled={status !== "solving"}
                   hints="off"
                   placeholder="Your move in SAN — e.g. Qh7#"
+                  disabledPlaceholder={status === "solved" ? "Solved — press Enter for the next one" : "Puzzle over — press Enter for the next one"}
                   onMove={onMove}
                   onIllegal={() => {
                     setMistakes((m) => m + 1);
@@ -436,7 +436,7 @@ export function PuzzleTrainer() {
 
               <div className="mt-5 flex flex-wrap gap-2">
                 {done ? (
-                  <Button variant="primary" onClick={() => void load()} icon={<IconArrowRight size={17} />} data-testid="puzzle-next">
+                  <Button variant="primary" onClick={nextOne} icon={<IconArrowRight size={17} />} data-testid="puzzle-next">
                     Next puzzle
                   </Button>
                 ) : (
@@ -459,7 +459,7 @@ export function PuzzleTrainer() {
               <div className="mt-5 border-t border-ivory-100/[0.06] pt-4">
                 <Toggle
                   checked={!prefs.applySetup}
-                  onChange={(v) => setPrefs((p) => ({ ...p, applySetup: !v }))}
+                  onChange={(v) => setPrefs({ applySetup: !v })}
                   label="Harder: apply the opponent's last move yourself"
                   description="The position is shown before their move."
                 />

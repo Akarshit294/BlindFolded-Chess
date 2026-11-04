@@ -90,6 +90,12 @@ type Fx =
   | { id: number; kind: "trail"; from: Square; to: Square }
   | { id: number; kind: "flash"; square: Square };
 
+let fxCounter = 0;
+function nextFxId(): number {
+  fxCounter += 1;
+  return fxCounter;
+}
+
 const SPRING: Transition = { type: "spring", stiffness: 520, damping: 38, mass: 0.9 };
 const SPRING_SLOW: Transition = { type: "spring", stiffness: 90, damping: 18, mass: 1.2 };
 const SETTLE: Transition = { type: "spring", stiffness: 700, damping: 34 };
@@ -268,7 +274,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
   const reduced = motionPref === "reduced" || (motionPref === "system" && !!systemReduced);
 
   const boardRef = useRef<HTMLDivElement>(null);
-  const [selected, setSelected] = useState<Square | null>(null);
+  const [sel, setSel] = useState<{ fen: string; sq: Square } | null>(null);
   const [hover, setHover] = useState<Square | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [cursor, setCursor] = useState<Square | null>(null);
@@ -276,7 +282,6 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
   const [promotion, setPromotion] = useState<{ from: Square; to: Square; color: Color } | null>(null);
   const [fx, setFx] = useState<Fx[]>([]);
   const shakeX = useMotionValue(0);
-  const fxId = useRef(0);
   const dragX = useMotionValue(0);
   const dragY = useMotionValue(0);
   const drops = useRef(new Map<string, { x: number; y: number }>());
@@ -291,20 +296,36 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
   } | null>(null);
 
   /* ---------- piece identity ---------- */
-  const tracked = useRef<{ fen: string; pieces: TrackedPiece[]; removed: TrackedPiece[]; removedFor: string }>({
-    fen: "",
-    pieces: [],
-    removed: [],
-    removedFor: "",
-  });
-  const pieces = useMemo(() => {
-    const t = tracked.current;
-    if (t.fen === fen) return t.pieces;
+  // Identities depend on the previous position, so they live in state and are updated during
+  // render when the FEN changes (React's "storing information from previous renders" pattern).
+  // Captured pieces become shatter effects; pieces vanishing on a position jump fade gently.
+  const [track, setTrack] = useState<{ fen: string; pieces: TrackedPiece[]; fx: Fx[] }>(() => ({
+    fen,
+    pieces: trackPieces([], placementsFromFen(fen), null).pieces,
+    fx: [],
+  }));
+  let current = track;
+  if (track.fen !== fen) {
     const hint: MoveHint | null = lastMove ? { from: lastMove.from, to: lastMove.to, promotion: lastMove.promotion } : null;
-    const { pieces: next, removed } = trackPieces(t.pieces, placementsFromFen(fen), hint);
-    tracked.current = { fen, pieces: next, removed: t.fen ? removed : [], removedFor: fen };
-    return next;
-  }, [fen, lastMove]);
+    const { pieces: next, removed } = trackPieces(track.pieces, placementsFromFen(fen), hint);
+    const isCapture = !!lastMove;
+    current = {
+      fen,
+      pieces: next,
+      fx: [
+        ...track.fx,
+        ...removed.map((p): Fx =>
+          isCapture
+            ? { id: nextFxId(), kind: "shatter", square: p.square, color: p.color, type: p.type, delay: reduced ? 0 : 0.12 }
+            : { id: nextFxId(), kind: "fade", square: p.square, color: p.color, type: p.type },
+        ),
+      ],
+    };
+    setTrack(current);
+  }
+  const pieces = current.pieces;
+  const selected = sel && sel.fen === fen ? sel.sq : null;
+  const setSelected = useCallback((sq: Square | null) => setSel(sq ? { fen, sq } : null), [fen]);
 
   const piecesRendered = useMemo(() => {
     if (!promotion) return pieces;
@@ -312,33 +333,15 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
     return pieces.map((p) => (p.square === promotion.from ? { ...p, square: promotion.to } : p));
   }, [pieces, promotion]);
 
-  /* Captured pieces shatter; pieces vanishing on a position jump fade gently. */
-  useEffect(() => {
-    const t = tracked.current;
-    if (t.removedFor !== fen || t.removed.length === 0) return;
-    const removed = t.removed;
-    t.removed = [];
-    const isCapture = !!lastMove;
-    setFx((cur) => [
-      ...cur,
-      ...removed.map((p): Fx => {
-        fxId.current += 1;
-        return isCapture
-          ? { id: fxId.current, kind: "shatter", square: p.square, color: p.color, type: p.type, delay: reduced ? 0 : 0.12 }
-          : { id: fxId.current, kind: "fade", square: p.square, color: p.color, type: p.type };
-      }),
-    ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fen]);
-
   /* ---------- visibility ---------- */
-  const [ghostShown, setGhostShown] = useState(true);
+  // Ghost mode: pieces show after each move, then fade once the timer for that position fires.
+  const [ghostHiddenFen, setGhostHiddenFen] = useState<string | null>(null);
   useEffect(() => {
     if (visibility !== "ghost") return;
-    setGhostShown(true);
-    const t = window.setTimeout(() => setGhostShown(false), ghostDelayMs);
+    const t = window.setTimeout(() => setGhostHiddenFen(fen), ghostDelayMs);
     return () => window.clearTimeout(t);
   }, [fen, visibility, ghostDelayMs]);
+  const ghostShown = ghostHiddenFen !== fen;
 
   const piecesVisible = reveal || visibility === "full" || (visibility === "ghost" && ghostShown) || visibility === "silhouette";
   const silhouette = !reveal && visibility === "silhouette";
@@ -356,25 +359,15 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
     ref,
     () => ({
       shake: () => doShake(),
-      trail: (from, to) => {
-        fxId.current += 1;
-        spawn([{ id: fxId.current, kind: "trail", from, to }]);
-      },
-      flash: (squares) =>
-        spawn(
-          squares.map((square) => {
-            fxId.current += 1;
-            return { id: fxId.current, kind: "flash", square };
-          }),
-        ),
+      trail: (from, to) => spawn([{ id: nextFxId(), kind: "trail", from, to }]),
+      flash: (squares) => spawn(squares.map((square) => ({ id: nextFxId(), kind: "flash", square }))),
     }),
     [spawn, doShake],
   );
-  const removeFx = useCallback((id: number) => setFx((cur) => cur.filter((f) => f.id !== id)), []);
-
-  useEffect(() => {
-    setSelected(null);
-  }, [fen]);
+  const removeFx = useCallback((id: number) => {
+    setFx((cur) => cur.filter((f) => f.id !== id));
+    setTrack((t) => (t.fx.some((f) => f.id === id) ? { ...t, fx: t.fx.filter((f) => f.id !== id) } : t));
+  }, []);
 
   /* ---------- geometry helpers ---------- */
   const pointToSquare = useCallback(
@@ -421,8 +414,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
       }
       return res;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onMove, pieceAt, movableColor],
+    [onMove, pieceAt, movableColor, doShake],
   );
 
   const handleSquareActivate = useCallback(
@@ -450,7 +442,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
       setSelected(null);
       attempt(from, sq);
     },
-    [onSquareClick, interactive, piecesVisible, silhouette, pieceAt, selected, isMovable, attempt],
+    [onSquareClick, interactive, piecesVisible, silhouette, pieceAt, selected, setSelected, isMovable, attempt],
   );
 
   /* ---------- pointer handling ---------- */
@@ -681,7 +673,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
 
         {/* Effects */}
         <div className="pointer-events-none absolute inset-0">
-          {fx.map((f) => {
+          {[...current.fx, ...fx].map((f) => {
             if (f.kind === "trail") return <GhostTrail key={f.id} from={f.from} to={f.to} orientation={orientation} onDone={() => removeFx(f.id)} />;
             if (f.kind === "flash") return <Flash key={f.id} square={f.square} orientation={orientation} onDone={() => removeFx(f.id)} />;
             const { col, row } = squareToGrid(f.square, orientation);

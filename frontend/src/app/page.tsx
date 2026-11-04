@@ -1,3 +1,10 @@
+import { Landing } from "@/components/landing/Landing";
+import { PageShell } from "@/components/layout/PageShell";
+
 export default function Home() {
-  return <div className="p-10 text-ivory-100">Home (WIP)</div>;
+  return (
+    <PageShell>
+      <Landing />
+    </PageShell>
+  );
 }

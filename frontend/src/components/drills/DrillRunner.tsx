@@ -6,7 +6,7 @@
  */
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Button } from "@/components/ui/Button";
 import { Card, SectionLabel, Segmented } from "@/components/ui/Controls";
@@ -80,7 +80,13 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   const seedRef = useRef(0);
   const advanceTimer = useRef<number | null>(null);
   const statsRef = useRef(stats);
-  statsRef.current = stats;
+  useLayoutEffect(() => {
+    statsRef.current = stats;
+  });
+  const resultRef = useRef(result);
+  useLayoutEffect(() => {
+    resultRef.current = result;
+  });
 
   // Load rating + personal bests for the intro screen.
   useEffect(() => {
@@ -115,18 +121,21 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
     setPhase("countdown");
   };
 
-  // Countdown 3-2-1.
+  // Countdown 3-2-1, then the first question.
   useEffect(() => {
     if (phase !== "countdown") return;
-    if (count <= 0) {
-      setPhase("running");
-      setStartedAt(Date.now());
-      if (timed) setEndsAt(Date.now() + meta.timedSeconds * 1000);
-      void nextQuestion(level);
-      return;
-    }
     playSound("tick");
-    const t = window.setTimeout(() => setCount((c) => c - 1), 520);
+    const t = window.setTimeout(() => {
+      if (count > 1) {
+        setCount(count - 1);
+        return;
+      }
+      const start = Date.now();
+      setPhase("running");
+      setStartedAt(start);
+      if (timed) setEndsAt(start + meta.timedSeconds * 1000);
+      void nextQuestion(level);
+    }, 520);
     return () => window.clearTimeout(t);
   }, [phase, count, level, timed, meta.timedSeconds, nextQuestion]);
 
@@ -163,16 +172,17 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
     announce(`Drill complete. ${s.correct} of ${s.total} correct.`);
   }, [startedAt, meta.id, level, timed]);
 
-  // Timed mode: end when the clock runs out.
+  // Timed mode: tick the clock and end when it runs out (unless feedback is showing).
   const [now, setNow] = useState(0);
   useEffect(() => {
     if (phase !== "running" || !timed) return;
-    const id = window.setInterval(() => setNow(Date.now()), 100);
+    const id = window.setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (t >= endsAt && !resultRef.current) void finish();
+    }, 100);
     return () => window.clearInterval(id);
-  }, [phase, timed]);
-  useEffect(() => {
-    if (phase === "running" && timed && now >= endsAt && !result) void finish();
-  }, [now, endsAt, phase, timed, finish, result]);
+  }, [phase, timed, endsAt, finish]);
 
   const advance = useCallback(() => {
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);

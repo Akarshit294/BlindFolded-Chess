@@ -32,7 +32,7 @@ function tcKey(tc: GameConfig["timeControl"]): string {
   return TIME_CONTROLS.find((t) => t.tc?.initial === tc?.initial && t.tc?.increment === tc?.increment)?.value ?? "none";
 }
 
-function ModePreview({ mode, active }: { mode: Visibility; active: boolean }) {
+export function ModePreview({ mode, active }: { mode: Visibility; active: boolean }) {
   const set = useSettings((s) => s.pieceSet);
   const cells = Array.from({ length: 16 }, (_, i) => i);
   const pieces: Record<number, { c: "w" | "b"; t: "k" | "n" | "p" | "q" }> = { 1: { c: "b", t: "k" }, 6: { c: "b", t: "n" }, 9: { c: "w", t: "q" }, 14: { c: "w", t: "k" }, 11: { c: "w", t: "p" } };

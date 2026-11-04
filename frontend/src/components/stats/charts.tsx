@@ -8,7 +8,7 @@
  * Series colours (validated for the dark surface): moon-500, ember-600, jade-600.
  */
 import { motion } from "motion/react";
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { niceTicks, valueAt, type Point } from "@/lib/stats/aggregate";
 import { cn } from "@/lib/utils/cn";
 
@@ -68,7 +68,7 @@ export function LineChart({
   const clipId = useId();
   const live = series.filter((s) => s.points.length > 0);
   const allPts = live.flatMap((s) => s.points);
-  const times = useMemo(() => [...new Set(allPts.map((p) => p.t))].sort((a, b) => a - b), [allPts]);
+  const times = [...new Set(allPts.map((p) => p.t))].sort((a, b) => a - b);
 
   const pad = { l: 44, r: live.length === 1 ? 52 : live.length <= 4 ? 100 : 16, t: 12, b: 28 };
   const plotW = Math.max(10, width - pad.l - pad.r);
@@ -83,11 +83,8 @@ export function LineChart({
   const x = (t: number) => pad.l + (tMax === tMin ? plotW / 2 : ((t - tMin) / (tMax - tMin)) * plotW);
   const y = (v: number) => pad.t + plotH - ((v - y0) / Math.max(1e-9, y1 - y0)) * plotH;
 
-  const xTicks = useMemo(() => {
-    if (times.length === 0) return [];
-    const n = Math.min(4, times.length);
-    return Array.from({ length: n }, (_, i) => tMin + ((tMax - tMin) * i) / Math.max(1, n - 1));
-  }, [times, tMin, tMax]);
+  const tickCount = Math.min(4, times.length);
+  const xTicks = Array.from({ length: tickCount }, (_, i) => tMin + ((tMax - tMin) * i) / Math.max(1, tickCount - 1));
 
   // Direct end labels only when they don't collide.
   const ends = live.map((s) => ({ s, p: s.points[s.points.length - 1]! }));

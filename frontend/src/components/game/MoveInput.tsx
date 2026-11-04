@@ -26,13 +26,23 @@ type Props = {
   /** Called when the user submits a syntactically valid but illegal move. */
   onIllegal: (text: string, message: string) => void;
   placeholder?: string;
+  disabledPlaceholder?: string;
   className?: string;
 };
 
 type Status = { tone: "neutral" | "good" | "bad" | "info"; text: string } | null;
 
 export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
-  { chess, disabled, hints, onMove, onIllegal, placeholder = "Type a move — e4, Nf3, O-O, knight takes c6…", className },
+  {
+    chess,
+    disabled,
+    hints,
+    onMove,
+    onIllegal,
+    placeholder = "Type a move — e4, Nf3, O-O, knight takes c6…",
+    disabledPlaceholder = "Waiting for the engine…",
+    className,
+  },
   ref,
 ) {
   const [text, setText] = useState("");
@@ -187,7 +197,7 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
               setText(suggestions[activeIdx]?.san ?? text);
             }
           }}
-          placeholder={disabled ? "Waiting for the engine…" : placeholder}
+          placeholder={disabled ? disabledPlaceholder : placeholder}
           aria-label="Your move"
           aria-describedby="move-input-status"
           autoComplete="off"
