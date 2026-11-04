@@ -91,6 +91,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   /* ------------------------------------------------------------------ restore after reload */
   useEffect(() => {
     useGame.getState().resumeClock();
+    inputRef.current?.focusSoft();
     if (game.moves.length === 0) playSound("start");
     const t = window.setTimeout(() => setToast((cur) => (cur?.text.startsWith("Game restored") ? null : cur)), 2600);
     return () => window.clearTimeout(t);

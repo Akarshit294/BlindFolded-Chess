@@ -58,7 +58,7 @@ export function GameOverPanel({ game, analysis, progress, analysisError, onRemat
         <Stat label="Your accuracy" testId="stat-accuracy">
           {accuracy !== null ? (
             <AnimatedNumber value={accuracy} decimals={1} suffix="%" />
-          ) : analysisError ? (
+          ) : analysisError || game.moves.length < 2 ? (
             <span className="text-base text-ivory-400">n/a</span>
           ) : (
             <span className="skeleton inline-block h-8 w-20 align-middle" />

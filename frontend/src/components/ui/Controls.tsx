@@ -71,10 +71,24 @@ export function Segmented<T extends string | number>({
   className?: string;
 }) {
   const group = useId();
+  // Arrow keys move the selection, as in a native radio group.
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const dir = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    const enabled = options.filter((o) => !o.disabled);
+    const idx = enabled.findIndex((o) => o.value === value);
+    const next = enabled[(idx + dir + enabled.length) % enabled.length];
+    if (!next) return;
+    onChange(next.value);
+    const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>("button[role=radio]:not([disabled])");
+    buttons[enabled.indexOf(next)]?.focus();
+  };
   return (
     <div
       role="radiogroup"
       aria-label={label}
+      onKeyDown={onKeyDown}
       className={cn("relative flex w-full rounded-xl bg-night-850/80 p-1 ring-1 ring-inset ring-ivory-100/[0.07]", className)}
     >
       {options.map((o) => {
@@ -85,6 +99,7 @@ export function Segmented<T extends string | number>({
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={active ? 0 : -1}
             title={o.hint}
             disabled={o.disabled}
             onClick={() => onChange(o.value)}

@@ -31,6 +31,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ALL_SQUARES, gridToSquare, squareShade, squareToGrid, type Orientation } from "@/lib/chess/squares";
+import { announce } from "@/lib/a11y/announcer";
+import { pieceLabel } from "@/lib/chess/notation";
 import { useSettings } from "@/lib/settings/store";
 import { cn } from "@/lib/utils/cn";
 import { Arrows, type BoardArrow } from "./Arrows";
@@ -563,6 +565,9 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
       const next = gridToSquare(Math.max(0, Math.min(7, col + dc)), Math.max(0, Math.min(7, row + dr)), orientation) ?? cur;
       setCursor(next);
       onCursor?.(next);
+      // Screen readers hear the square, plus the piece when pieces are visible.
+      const piece = piecesVisible && !silhouette ? pieceAt(next) : null;
+      announce(piece ? `${next}, ${pieceLabel(piece.color, piece.type)}` : next);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       setKeyboardActive(true);
