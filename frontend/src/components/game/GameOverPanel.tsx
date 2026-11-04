@@ -156,7 +156,7 @@ function Stat({ label, children, testId }: { label: string; children: React.Reac
   return (
     <div className="rounded-2xl bg-night-850/70 p-4 ring-1 ring-inset ring-ivory-100/[0.06]" data-testid={testId}>
       <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ivory-500">{label}</div>
-      <div className="mt-1.5 font-display text-3xl font-semibold text-ivory-50 tabular">{children}</div>
+      <div className="mt-1.5 text-3xl font-semibold tracking-tight text-ivory-50">{children}</div>
     </div>
   );
 }

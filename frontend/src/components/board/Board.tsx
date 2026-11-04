@@ -880,10 +880,10 @@ function GhostTrail({ from, to, orientation, onDone }: { from: Square; to: Squar
       <motion.circle
         cx={x2}
         cy={y2}
-        r={0.42}
-        fill="rgba(220,225,255,0.5)"
+        r={0.36}
+        fill="rgba(220,225,255,0.35)"
         initial={{ opacity: 0, scale: 0.3 }}
-        animate={{ opacity: [0, 0.8, 0], scale: [0.3, 1.2, 1.5] }}
+        animate={{ opacity: [0, 0.7, 0], scale: [0.3, 1.1, 1.35] }}
         transition={{ duration: 1.2, delay: 0.25 }}
         style={{ transformOrigin: `${x2}px ${y2}px`, transformBox: "fill-box" }}
       />

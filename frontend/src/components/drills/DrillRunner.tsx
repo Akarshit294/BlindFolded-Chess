@@ -348,7 +348,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-ivory-500">
             {meta.title} · Level {level} · {levelMeta.name}
           </div>
-          <h1 className="mt-3 text-5xl font-semibold text-ivory-50">
+          <h1 className="mt-3 font-sans text-6xl font-semibold tracking-tight text-ivory-50">
             <AnimatedNumber value={accuracy} suffix="%" />
           </h1>
           <p className="mt-2 text-ivory-300">
@@ -380,7 +380,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
           ].map((s) => (
             <motion.div key={s.label} variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} className="rounded-2xl bg-night-850/70 p-4 ring-1 ring-inset ring-ivory-100/[0.06]">
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ivory-500">{s.label}</div>
-              <div className="mt-1 font-display text-2xl font-semibold text-ivory-50 tabular">{s.value}</div>
+              <div className="mt-1 text-2xl font-semibold tracking-tight text-ivory-50">{s.value}</div>
             </motion.div>
           ))}
         </motion.div>

@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image; Vercel ignores this.
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   reactStrictMode: true,
+  devIndicators: false,
   poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,

@@ -44,7 +44,11 @@ function knightPath(from: Square, to: Square): Square[] {
   while (q.length) {
     const cur = q.shift()!;
     if (cur === to) break;
-    for (const n of moves(cur)) if (!prev.has(n)) (prev.set(n, cur), q.push(n));
+    for (const n of moves(cur)) {
+      if (prev.has(n)) continue;
+      prev.set(n, cur);
+      q.push(n);
+    }
   }
   const path: Square[] = [];
   for (let c: Square | null = to; c; c = prev.get(c) ?? null) path.unshift(c);

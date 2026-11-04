@@ -414,7 +414,13 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
                 )}
               </AnimatePresence>
             ) : (
-              board
+              <motion.div
+                animate={peeking ? { scale: 1.015, y: -6 } : { scale: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                className={cn("rounded-[12px] transition-shadow duration-500", peeking && "shadow-[0_0_0_2px_rgba(245,176,78,0.55),0_30px_80px_-20px_rgba(245,176,78,0.35)]")}
+              >
+                {board}
+              </motion.div>
             )}
             <AnimatePresence>
               {peeking ? (

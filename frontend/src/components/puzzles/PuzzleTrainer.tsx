@@ -284,7 +284,7 @@ export function PuzzleTrainer() {
         </motion.div>
         <div className="rounded-2xl bg-night-850/70 px-4 py-2.5 text-right ring-1 ring-inset ring-ivory-100/[0.07]">
           <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ivory-500">Puzzle rating</div>
-          <div className="font-display text-2xl font-semibold text-ivory-50 tabular" data-testid="puzzle-rating">
+          <div className="text-2xl font-semibold tracking-tight text-ivory-50" data-testid="puzzle-rating">
             <AnimatedNumber value={rating} />
             {delta !== null ? (
               <span className={cn("ml-1.5 font-mono text-sm", delta >= 0 ? "text-jade-300" : "text-coral-300")}>
