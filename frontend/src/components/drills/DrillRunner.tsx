@@ -261,7 +261,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
               Drill rating <span className="font-mono text-ivory-100">{rating}</span>
             </span>
           </div>
-          <div role="radiogroup" aria-label="Level" className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <div role="radiogroup" aria-label="Level" className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {meta.levels.map((l, i) => {
               const active = level === i + 1;
               return (
@@ -296,7 +296,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
               );
             })}
           </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div>
               <SectionLabel>Mode</SectionLabel>
               <Segmented<"standard" | "timed">

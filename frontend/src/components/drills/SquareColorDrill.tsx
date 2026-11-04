@@ -49,7 +49,7 @@ function Question({ q, level, locked, onAnswer }: QuestionProps<SquareColorQ>) {
     );
   }
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_280px] md:items-center">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_280px] md:items-center">
       <div>
         <Prompt sub={level === 3 ? "Trust your first instinct." : "Light or dark?"}>
           What colour is <Sq>{q.square}</Sq>?

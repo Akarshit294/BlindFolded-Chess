@@ -215,7 +215,7 @@ export function StatsDashboard() {
         />
       </motion.div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card className="p-5">
           <h2 className="mb-3 text-lg font-semibold text-ivory-50">Ratings over time</h2>
           {derived.bSeries.length || derived.pSeries.length ? (
@@ -246,7 +246,7 @@ export function StatsDashboard() {
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card className="p-5">
           <h2 className="mb-1 text-lg font-semibold text-ivory-50">Drills</h2>
           <p className="mb-3 text-sm text-ivory-400">Rating per drill, with accuracy over your last sessions.</p>

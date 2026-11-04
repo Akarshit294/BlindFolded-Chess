@@ -297,7 +297,7 @@ export function PuzzleTrainer() {
       </div>
 
       {/* Filters */}
-      <Card className="mt-6 grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1.3fr_1fr]">
+      <Card className="mt-6 grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
         <div>
           <SectionLabel>Goal</SectionLabel>
           <Segmented<PuzzleGoal | "any">
@@ -341,7 +341,7 @@ export function PuzzleTrainer() {
         </div>
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)]">
         {/* Text side */}
         <Card className="p-5 sm:p-6">
           {status === "loading" || !puzzle || !chess ? (

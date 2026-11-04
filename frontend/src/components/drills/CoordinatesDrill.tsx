@@ -36,7 +36,7 @@ function Question({ q, locked, onAnswer }: QuestionProps<CoordinateQ>) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_minmax(0,440px)] md:items-start">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,440px)] md:items-start">
       <div>
         {q.mode === "find" ? (
           <Prompt sub={`Board seen from ${q.orientation === "white" ? "White" : "Black"}'s side.`}>

@@ -109,7 +109,7 @@ export function GameSetup({ onStart }: { onStart: (config: GameConfig) => void }
         </p>
       </motion.div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Card className="p-5 sm:p-6">
           <SectionLabel>Visibility</SectionLabel>
           <div role="radiogroup" aria-label="Visibility mode" className="grid grid-cols-2 gap-3 sm:grid-cols-5">

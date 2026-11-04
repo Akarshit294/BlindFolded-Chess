@@ -37,7 +37,7 @@ export function SettingsPanel() {
 
   if (!s.hydrated) {
     return (
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-8 sm:px-6 lg:grid-cols-[1fr_380px]" aria-busy="true">
+      <div className="mx-auto grid grid-cols-1 max-w-6xl gap-6 px-4 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px]" aria-busy="true">
         <div className="space-y-6">
           <div className="skeleton h-12 w-48" />
           <div className="skeleton h-80" />
@@ -60,7 +60,7 @@ export function SettingsPanel() {
         </Button>
       </motion.div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <Group title="Board" description="Themes and pieces apply everywhere — games, drills, puzzles and replays.">
             <Row>
@@ -96,7 +96,7 @@ export function SettingsPanel() {
             </Row>
             <Row>
               <div className="mb-2 text-sm font-medium text-ivory-100">Pieces</div>
-              <div role="radiogroup" aria-label="Piece set" className="grid gap-3 sm:grid-cols-2">
+              <div role="radiogroup" aria-label="Piece set" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {PIECE_SETS.map((p) => {
                   const active = s.pieceSet === p.id;
                   return (

@@ -99,7 +99,7 @@ function Question({ q, locked, onAnswer }: QuestionProps<LineQ>) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_320px] md:items-start">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_320px] md:items-start">
       <div>
         {prompt}
         {input}

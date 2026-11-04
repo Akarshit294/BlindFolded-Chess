@@ -331,6 +331,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
           onRematch={() => {
             finishing.current = false;
             useGame.getState().start(game.config);
+            window.scrollTo({ top: 0, behavior: "instant" });
           }}
           onNewGame={() => {
             useGame.getState().clear();
@@ -374,7 +375,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 sm:px-6" data-testid="game-screen">
       <Confetti fire={confetti} />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         {/* Board column */}
         <section aria-label="Game" className="mx-auto w-full max-w-[min(100%,calc(100dvh-15rem))] lg:max-w-[min(100%,calc(100dvh-14rem))]">
           <PlayerBar

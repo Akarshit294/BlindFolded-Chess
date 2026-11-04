@@ -57,7 +57,7 @@ export function TrainHub() {
         </p>
       </motion.div>
       <motion.ul
-        className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         initial="hidden"
         animate="show"
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}

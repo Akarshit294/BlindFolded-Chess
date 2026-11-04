@@ -68,7 +68,7 @@ function RouteReplay({ path, blocked }: { path: Square[]; blocked: Square[] }) {
 function Question({ q, locked, onAnswer, result }: QuestionProps<KnightRouteQ>) {
   const [shown, setShown] = useState<Square[] | null>(null);
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_minmax(0,420px)] md:items-start">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-start">
       <div>
         <Prompt
           sub={

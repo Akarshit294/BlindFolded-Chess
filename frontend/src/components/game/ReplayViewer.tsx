@@ -75,7 +75,7 @@ export function ReplayViewer({ moves, analysis, orientation, initialPly, autoPla
   const curve = analysis ? [analysis.initialWin, ...analysis.plies.map((p) => p.win)] : null;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="flex gap-3">
         {analysis ? <EvalBar win={win} label={label} orientation={orientation} /> : null}
         <div className="min-w-0 flex-1">

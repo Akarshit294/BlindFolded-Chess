@@ -73,7 +73,7 @@ export function LearnGuide() {
         </p>
       </motion.header>
 
-      <div className="mt-10 grid gap-12 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="On this page" className="hidden lg:block">
           <ol className="sticky top-24 space-y-1 border-l border-ivory-100/10 text-sm">
             {SECTIONS.map((s) => (
@@ -154,7 +154,7 @@ export function LearnGuide() {
 
           <Section id="plan" title="A four-week plan">
             <p>Fifteen to twenty minutes a day. Consistency matters far more than session length — your streak on the Stats page will keep you honest.</p>
-            <div className="not-prose grid gap-3 sm:grid-cols-2">
+            <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2">
               {PLAN.map((w, i) => (
                 <motion.div
                   key={w.week}

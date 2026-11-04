@@ -19,7 +19,7 @@ export function PlayClient() {
 
   if (!hydrated) {
     return (
-      <div className="mx-auto grid max-w-5xl gap-6 px-4 pt-8 sm:px-6 lg:grid-cols-[1.4fr_1fr]" aria-busy="true" aria-label="Loading">
+      <div className="mx-auto grid grid-cols-1 max-w-5xl gap-6 px-4 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]" aria-busy="true" aria-label="Loading">
         <div className="skeleton h-12 w-2/3 lg:col-span-2" />
         <div className="skeleton h-[420px]" />
         <div className="skeleton h-[420px]" />
@@ -28,7 +28,23 @@ export function PlayClient() {
   }
 
   if (!game) {
-    return <GameSetup onStart={(config) => useGame.getState().start(config)} />;
+    return (
+      <GameSetup
+        onStart={(config) => {
+          useGame.getState().start(config);
+          // The setup screen is long on phones; start the game at the top with the board in view.
+          window.scrollTo({ top: 0, behavior: "instant" });
+        }}
+      />
+    );
   }
-  return <GameScreen key={game.id} onNewSetup={() => force((n) => n + 1)} />;
+  return (
+    <GameScreen
+      key={game.id}
+      onNewSetup={() => {
+        force((n) => n + 1);
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }}
+    />
+  );
 }

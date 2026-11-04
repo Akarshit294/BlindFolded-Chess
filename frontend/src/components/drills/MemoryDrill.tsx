@@ -89,7 +89,7 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
 
   if (phase === "study") {
     return (
-      <div className="grid gap-6 md:grid-cols-[1fr_minmax(0,460px)] md:items-start">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,460px)] md:items-start">
         <div>
           <Prompt sub="Memorise every piece and square.">Study the position</Prompt>
           <div className="flex items-center gap-4">
@@ -124,7 +124,7 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_minmax(0,460px)] md:items-start">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,460px)] md:items-start">
       <div>
         <Prompt sub="Pick a piece, then click squares to place it. Click again to remove.">Rebuild it</Prompt>
         <div className="space-y-2" role="radiogroup" aria-label="Piece to place">

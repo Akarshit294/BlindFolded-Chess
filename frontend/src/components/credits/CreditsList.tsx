@@ -14,7 +14,7 @@ function List({ items }: { items: Credit[] }) {
         <motion.li
           key={c.name}
           variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
-          className="grid gap-1 bg-night-850/50 px-4 py-3 sm:grid-cols-[1.1fr_2fr_auto] sm:items-center sm:gap-4"
+          className="grid grid-cols-1 gap-1 bg-night-850/50 px-4 py-3 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)_auto] sm:items-center sm:gap-4"
         >
           <a href={c.url} target="_blank" rel="noreferrer noopener" className="font-medium text-ivory-50 underline-offset-4 hover:text-ember-200 hover:underline">
             {c.name}

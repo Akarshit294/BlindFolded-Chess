@@ -144,7 +144,7 @@ function Question({ q, level, locked, onAnswer }: QuestionProps<WhereRound>) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_minmax(0,400px)] md:items-start">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,400px)] md:items-start">
       <div>
         <div className="mb-4 flex gap-1.5" aria-label="Question progress">
           {q.questions.map((_, i) => (

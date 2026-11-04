@@ -35,7 +35,7 @@ export function Landing() {
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 opacity-60">
           <Fog density={0.55} />
         </div>
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
+        <div className="mx-auto grid grid-cols-1 max-w-7xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:pt-20">
           <motion.div variants={stagger} initial="hidden" animate="show">
             <motion.div variants={rise} className="inline-flex items-center gap-2 rounded-full bg-ivory-100/[0.05] px-3 py-1 text-xs font-medium text-ivory-300 ring-1 ring-inset ring-ivory-100/10">
               <span className="h-1.5 w-1.5 rounded-full bg-jade-400" /> Free · open source · no sign-up
@@ -101,7 +101,7 @@ export function Landing() {
 
       {/* ---------------------------------------------------------- features */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <motion.ul className="grid gap-4 md:grid-cols-2" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+        <motion.ul className="grid grid-cols-1 gap-4 md:grid-cols-2" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
           {FEATURES.map((f) => {
             const Icon = f.icon;
             return (
@@ -126,7 +126,7 @@ export function Landing() {
 
       {/* ---------------------------------------------------------- how */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} className="grid gap-8 md:grid-cols-3">
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {STEPS.map((s) => (
             <motion.div key={s.n} variants={rise} className="relative">
               <div className="font-display text-6xl font-semibold text-ivory-100/10">{s.n}</div>
