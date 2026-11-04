@@ -35,3 +35,6 @@ backend/scripts/.cache/
 # Env
 .env
 .env.local
+
+# Agent worktrees
+.claude/worktrees/
