@@ -1,0 +1,27 @@
+# Run the whole stack in containers:   docker compose up --build
+#   web  -> http://localhost:3000
+#   api  -> http://localhost:8000/api/docs
+services:
+  api:
+    build: ./backend
+    environment:
+      PORT: "8000"
+      CORS_ORIGINS: "http://localhost:3000"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Inlined at build time; the browser talks to the API through the host port.
+        NEXT_PUBLIC_API_URL: "http://localhost:8000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
