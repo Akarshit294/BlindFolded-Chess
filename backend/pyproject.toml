@@ -1,0 +1,71 @@
+[project]
+name = "blindfold-chess-backend"
+version = "1.0.0"
+description = "FastAPI backend of the Blindfold Chess trainer: puzzles, drills and Stockfish analysis"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "chess>=1.11.2",
+    "fastapi>=0.162.0",
+    "pydantic>=2.14.2",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.0",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+    "zstandard>=0.25.0",
+]
+
+[tool.uv]
+# Application, not a library: dependencies only, the project itself is not installed.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "scripts"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+markers = [
+    "requires_stockfish: needs a native Stockfish binary (skipped when none is found)",
+]
+filterwarnings = ["error"]
+xfail_strict = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 110
+src = [".", "scripts"]
+extend-exclude = ["scripts/.cache"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "BLE", "C4", "SIM", "RET", "PIE", "PT", "RUF",
+    "PERF", "PLC", "PLE", "PLW", "PGH", "TRY", "EM", "ISC", "LOG", "G", "DTZ", "FURB",
+]
+ignore = [
+    "TRY003",  # long messages in exceptions are fine
+    "PLW2901", # loop variable reuse is idiomatic in small parsers
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLC0415", "EM101", "TRY002"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["app", "scripts"]
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
