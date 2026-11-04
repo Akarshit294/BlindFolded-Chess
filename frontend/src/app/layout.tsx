@@ -3,6 +3,7 @@ import "@fontsource-variable/fraunces";
 import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { PieceSprite } from "@/components/board/PieceSprite";
 import { LiveRegion } from "@/components/layout/LiveRegion";
 import { Providers } from "@/components/layout/Providers";
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" data-board-theme="nocturne" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: SETTINGS_BOOT_SCRIPT }} />
+        <Script id="bf-settings-boot" strategy="beforeInteractive">
+          {SETTINGS_BOOT_SCRIPT}
+        </Script>
       </head>
       <body className="min-h-dvh antialiased">
         <a

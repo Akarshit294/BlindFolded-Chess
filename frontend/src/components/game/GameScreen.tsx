@@ -34,8 +34,9 @@ import { VISIBILITY_MODES } from "./GameSetup";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function useNow(active: boolean, interval = 100): number {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
   useEffect(() => {
+    setNow(Date.now());
     if (!active) return;
     const id = window.setInterval(() => setNow(Date.now()), interval);
     return () => window.clearInterval(id);

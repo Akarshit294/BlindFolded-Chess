@@ -157,5 +157,5 @@ export function remainingMs(game: GameRecord, turnStartedAt: number | null, colo
   const toMove = game.moves.length % 2 === 0 ? "w" : "b";
   const base = game.clocks[color];
   if (game.result || color !== toMove || !turnStartedAt) return base;
-  return Math.max(0, base - (now - turnStartedAt));
+  return Math.max(0, base - Math.max(0, now - turnStartedAt));
 }
