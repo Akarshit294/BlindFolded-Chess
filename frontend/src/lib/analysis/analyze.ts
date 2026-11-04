@@ -98,11 +98,12 @@ type ServerAnalysis = {
   counts: { white: Record<Classification, number>; black: Record<Classification, number> };
 };
 
-async function analyzeOnServer(moves: string[], depth: number): Promise<GameAnalysis> {
+async function analyzeOnServer(moves: string[], depth: number, signal?: AbortSignal): Promise<GameAnalysis> {
   const data = await apiFetch<ServerAnalysis>("/api/analysis", {
     method: "POST",
     body: JSON.stringify({ moves, depth }),
     timeoutMs: 15_000 + moves.length * 400,
+    signal,
   });
   return {
     source: "server",
@@ -162,11 +163,13 @@ export async function analyzeGame(
   if (opts.preferServer !== false && backendOnline() && useBackend.getState().health?.engine) {
     try {
       opts.onProgress?.(0, 1);
-      const res = await analyzeOnServer(moves, 12);
+      const res = await analyzeOnServer(moves, 12, opts.signal);
+      if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
       opts.onProgress?.(1, 1);
       return res;
-    } catch {
-      // Fall through to the browser engine.
+    } catch (err) {
+      if (opts.signal?.aborted) throw err instanceof DOMException ? err : new DOMException("Aborted", "AbortError");
+      // Otherwise fall through to the browser engine.
     }
   }
   return analyzeInBrowser(moves, { movetime: 220, depth: 12, onProgress: opts.onProgress, signal: opts.signal });

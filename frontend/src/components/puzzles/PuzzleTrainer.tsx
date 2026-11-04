@@ -87,8 +87,23 @@ export function PuzzleTrainer() {
   const startedAt = useRef(0);
   const inputRef = useRef<MoveInputHandle>(null);
   const [, setFenTick] = useState(0);
+  // The opponent's reply comes after a short beat; until then the solver can't act.
+  const [replying, setReplying] = useState(false);
+  const replyTimer = useRef<number | null>(null);
+  const peekTimer = useRef<number | null>(null);
+  const clearTimers = useCallback(() => {
+    if (replyTimer.current !== null) window.clearTimeout(replyTimer.current);
+    if (peekTimer.current !== null) window.clearTimeout(peekTimer.current);
+    replyTimer.current = null;
+    peekTimer.current = null;
+  }, []);
+  useEffect(() => clearTimers, [clearTimers]);
 
   const load = useCallback(async (filters: PuzzleFilters) => {
+    // A reply or a peek still pending from the previous puzzle must not touch this one.
+    clearTimers();
+    setReplying(false);
+    setPeeking(false);
     setStatus("loading");
     setMessage(null);
     setDelta(null);
@@ -113,7 +128,7 @@ export function PuzzleTrainer() {
     rememberPuzzle(p.id);
     announce(`New puzzle. ${goalText(p, s.solver)}`);
     window.setTimeout(() => inputRef.current?.focusSoft(), 100);
-  }, []);
+  }, [clearTimers]);
 
   // Preferences and rating live in the browser: read them after mount, then load a puzzle.
   useEffect(() => {
@@ -170,7 +185,7 @@ export function PuzzleTrainer() {
   );
 
   const onMove = (move: Move) => {
-    if (!puzzle || !chess || status !== "solving") return;
+    if (!puzzle || !chess || status !== "solving" || replying) return;
     const verdict = checkStep(puzzle, step, chess, move);
     if (verdict === "wrong") {
       setMistakes((m) => m + 1);
@@ -194,7 +209,10 @@ export function PuzzleTrainer() {
     // Opponent replies after a beat.
     setMessage({ text: "Correct. Keep going…", tone: "good" });
     playSound("correct");
-    window.setTimeout(() => {
+    setReplying(true);
+    replyTimer.current = window.setTimeout(() => {
+      replyTimer.current = null;
+      setReplying(false);
       const r = chess.move(uciToMove(reply));
       setLastMove(r);
       setLog((l) => [...l, { san: r.san, by: "them" }]);
@@ -211,7 +229,7 @@ export function PuzzleTrainer() {
   };
 
   const showHint = () => {
-    if (!puzzle || !chess || status !== "solving") return;
+    if (!puzzle || !chess || status !== "solving" || replying) return;
     const expected = puzzle.moves[1 + step * 2]!;
     const piece = chess.get(expected.slice(0, 2) as Square);
     const text = piece ? `Look at your ${PIECE_NAMES[piece.type]} on ${expected.slice(0, 2)}.` : "Look for checks.";
@@ -225,11 +243,14 @@ export function PuzzleTrainer() {
     setPeeks((p) => p + 1);
     setPeeking(true);
     playSound("peek");
-    window.setTimeout(() => setPeeking(false), peekSeconds * 1000);
+    peekTimer.current = window.setTimeout(() => {
+      peekTimer.current = null;
+      setPeeking(false);
+    }, peekSeconds * 1000);
   };
 
   const giveUp = () => {
-    if (!puzzle || !chess || status !== "solving") return;
+    if (!puzzle || !chess || status !== "solving" || replying) return;
     // Play out the rest of the solution so the reveal shows the final position.
     const rest = puzzle.moves.slice(1 + step * 2);
     const entries: LogEntry[] = [];
@@ -305,7 +326,11 @@ export function PuzzleTrainer() {
             size="sm"
             value={prefs.goal}
             onChange={(g) => setPrefs({ goal: g })}
-            options={(["any", "mate1", "mate2", "mate3", "win"] as const).map((g) => ({ value: g, label: g === "any" ? "Any" : g === "win" ? "Win" : GOAL_LABELS[g].replace("Mate in ", "M") }))}
+            options={(["any", "mate1", "mate2", "mate3", "win"] as const).map((g) => ({
+              value: g,
+              label: g === "any" ? "Any" : g === "win" ? "Win" : GOAL_LABELS[g].replace("Mate in ", "M"),
+              hint: g === "any" ? "Any goal" : GOAL_LABELS[g],
+            }))}
           />
         </div>
         <div>
@@ -408,10 +433,10 @@ export function PuzzleTrainer() {
                 <MoveInput
                   ref={inputRef}
                   chess={chess}
-                  disabled={status !== "solving"}
+                  disabled={status !== "solving" || replying}
                   hints="off"
                   placeholder="Your move in SAN — e.g. Qh7#"
-                  disabledPlaceholder={status === "solved" ? "Solved — press Enter for the next one" : "Puzzle over — press Enter for the next one"}
+                  disabledPlaceholder={replying ? "Opponent replying…" : status === "solved" ? "Solved — press Enter for the next one" : "Puzzle over — press Enter for the next one"}
                   onMove={onMove}
                   onIllegal={() => {
                     setMistakes((m) => m + 1);
@@ -444,13 +469,13 @@ export function PuzzleTrainer() {
                     <Button variant="moon" onClick={peek} disabled={peeking} icon={<EyeMorph closed={!peeking} size={18} />} data-testid="puzzle-peek">
                       Peek
                     </Button>
-                    <Button onClick={showHint} disabled={!!hint} icon={<IconBulb size={17} />} data-testid="puzzle-hint">
+                    <Button onClick={showHint} disabled={!!hint || replying} icon={<IconBulb size={17} />} data-testid="puzzle-hint">
                       Hint
                     </Button>
                     <Button onClick={readAloud} icon={<IconVolume size={17} />}>
                       Read aloud
                     </Button>
-                    <Button variant="ghost" onClick={giveUp} icon={<IconFlag size={17} />} data-testid="puzzle-giveup">
+                    <Button variant="ghost" onClick={giveUp} disabled={replying} icon={<IconFlag size={17} />} data-testid="puzzle-giveup">
                       Show solution
                     </Button>
                   </>

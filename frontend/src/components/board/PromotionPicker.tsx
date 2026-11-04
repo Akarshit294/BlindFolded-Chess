@@ -1,7 +1,7 @@
 "use client";
 import type { Color, PieceSymbol, Square } from "chess.js";
 import { motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { PIECE_NAMES } from "@/lib/chess/notation";
 import { squareToGrid, type Orientation } from "@/lib/chess/squares";
 import { PieceGlyph } from "./PieceGlyph";
@@ -22,18 +22,24 @@ export function PromotionPicker({ square, color, orientation, set, onPick, onCan
   const { col, row } = squareToGrid(square, orientation);
   const downward = row === 0;
   const first = useRef<HTMLButtonElement>(null);
+  // The latest handlers, without re-running the mount effect: re-running it would pull focus
+  // back to the queen on every parent render (a running clock re-renders ten times a second).
+  const handlers = useRef({ onPick, onCancel });
+  useLayoutEffect(() => {
+    handlers.current = { onPick, onCancel };
+  });
 
   useEffect(() => {
     first.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") handlers.current.onCancel();
       const map: Record<string, PieceSymbol> = { q: "q", n: "n", r: "r", b: "b" };
       const p = map[e.key.toLowerCase()];
-      if (p) onPick(p);
+      if (p) handlers.current.onPick(p);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel, onPick]);
+  }, []);
 
   return (
     <div className="absolute inset-0 z-40" onPointerDown={(e) => e.target === e.currentTarget && onCancel()}>

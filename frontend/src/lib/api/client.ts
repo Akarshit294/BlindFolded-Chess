@@ -34,9 +34,13 @@ export class ApiError extends Error {
 
 export async function apiFetch<T>(path: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<T> {
   if (!API_URL) throw new ApiError("Backend not configured", 0);
-  const { timeoutMs = 8000, ...rest } = init;
+  const { timeoutMs = 8000, signal, ...rest } = init;
   const ctrl = new AbortController();
   const timer = window.setTimeout(() => ctrl.abort(), timeoutMs);
+  // The caller's signal (e.g. a closed replay) aborts the request too.
+  const onAbort = () => ctrl.abort();
+  if (signal?.aborted) ctrl.abort();
+  else signal?.addEventListener("abort", onAbort, { once: true });
   try {
     const res = await fetch(`${API_URL}${path}`, {
       ...rest,
@@ -46,10 +50,12 @@ export async function apiFetch<T>(path: string, init: RequestInit & { timeoutMs?
     if (!res.ok) throw new ApiError(`HTTP ${res.status}`, res.status);
     return (await res.json()) as T;
   } catch (err) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     if (err instanceof ApiError) throw err;
     throw new ApiError(err instanceof Error ? err.message : "Network error", 0);
   } finally {
     window.clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
   }
 }
 

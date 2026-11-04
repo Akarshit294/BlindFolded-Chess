@@ -4,6 +4,7 @@
  */
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { replay, uciToMove } from "@/lib/game/rules";
 import { newId } from "@/lib/storage/db";
 import type { GameAnalysisSummary, GameConfig, GameRecord, GameResult } from "@/lib/storage/types";
 
@@ -21,20 +22,24 @@ export type ColorChoice = "w" | "b" | "random";
 
 type GameState = {
   game: GameRecord | null;
-  /** Epoch ms when the side to move started thinking (clock bookkeeping). */
+  /** Epoch ms when the side to move started (or resumed) thinking; null while paused. */
   turnStartedAt: number | null;
+  /** Time already charged to the side to move during this turn, before a pause. */
+  turnBanked: number;
   setup: GameConfig & { colorChoice: ColorChoice };
   hydrated: boolean;
   setSetup: (patch: Partial<GameConfig & { colorChoice: ColorChoice }>) => void;
   start: (config: GameConfig) => GameRecord;
-  applyMove: (uci: string, san: string, now?: number) => void;
+  /** Records a move if it is legal in the current position; returns whether it was. */
+  applyMove: (uci: string, now?: number) => boolean;
   end: (result: GameResult) => void;
   takeback: (plies: number) => void;
   usePeek: () => boolean;
   illegal: () => void;
   setAnalysis: (a: GameAnalysisSummary) => void;
   setRating: (before: number, after: number) => void;
-  resumeClock: () => void;
+  pauseClock: (now?: number) => void;
+  resumeClock: (now?: number) => void;
   clear: () => void;
 };
 
@@ -48,6 +53,7 @@ export const useGame = create<GameState>()(
     (set, get) => ({
       game: null,
       turnStartedAt: null,
+      turnBanked: 0,
       hydrated: false,
       setup: { ...DEFAULT_CONFIG, colorChoice: "w" },
       setSetup: (patch) => set((s) => ({ setup: { ...s.setup, ...patch } })),
@@ -68,12 +74,22 @@ export const useGame = create<GameState>()(
           result: null,
           endedAt: null,
         };
-        set({ game, turnStartedAt: now });
+        set({ game, turnStartedAt: now, turnBanked: 0 });
         return game;
       },
-      applyMove: (uci, san, now = Date.now()) => {
-        const { game, turnStartedAt } = get();
-        if (!game || game.result) return;
+      applyMove: (uci, now = Date.now()) => {
+        const { game, turnStartedAt, turnBanked } = get();
+        if (!game || game.result) return false;
+        // Only a legal move from the current position is recorded. A stale or out-of-turn move
+        // would leave the saved game and the board out of step for good.
+        const { chess, history } = replay(game.moves);
+        if (history.length !== game.moves.length) return false;
+        let san: string;
+        try {
+          san = chess.move(uciToMove(uci)).san;
+        } catch {
+          return false;
+        }
         const mover = game.moves.length % 2 === 0 ? "w" : "b";
         const spent = turnStartedAt ? Math.max(0, now - turnStartedAt) : 0;
         let clocks = game.clocks;
@@ -81,9 +97,11 @@ export const useGame = create<GameState>()(
           clocks = { ...clocks, [mover]: Math.max(0, clocks[mover] - spent) + game.config.timeControl.increment * 1000 };
         }
         set({
-          game: { ...game, moves: [...game.moves, uci], sans: [...game.sans, san], moveTimes: [...game.moveTimes, spent], clocks, updatedAt: now },
+          game: { ...game, moves: [...game.moves, uci], sans: [...game.sans, san], moveTimes: [...game.moveTimes, (turnBanked ?? 0) + spent], clocks, updatedAt: now },
           turnStartedAt: now,
+          turnBanked: 0,
         });
+        return true;
       },
       end: (result) => {
         const { game, turnStartedAt } = get();
@@ -94,7 +112,7 @@ export const useGame = create<GameState>()(
           const mover = game.moves.length % 2 === 0 ? "w" : "b";
           clocks = { ...clocks, [mover]: Math.max(0, clocks[mover] - (now - turnStartedAt)) };
         }
-        set({ game: { ...game, result, endedAt: now, clocks, updatedAt: now }, turnStartedAt: null });
+        set({ game: { ...game, result, endedAt: now, clocks, updatedAt: now }, turnStartedAt: null, turnBanked: 0 });
       },
       takeback: (plies) => {
         const { game } = get();
@@ -110,6 +128,7 @@ export const useGame = create<GameState>()(
             updatedAt: Date.now(),
           },
           turnStartedAt: Date.now(),
+          turnBanked: 0,
         });
       },
       usePeek: () => {
@@ -131,19 +150,31 @@ export const useGame = create<GameState>()(
         const { game } = get();
         if (game) set({ game: { ...game, ratingBefore, ratingAfter } });
       },
-      /** After a reload the time away does not count: restart the current turn's clock now. */
-      resumeClock: () => {
-        const { game } = get();
-        if (game && !game.result) set({ turnStartedAt: Date.now() });
+      /**
+       * Leaving the game (reload, closing the tab, another page) charges the time spent so far
+       * on this move and stops the clock, so a reload can't give that time back.
+       */
+      pauseClock: (now = Date.now()) => {
+        const { game, turnStartedAt, turnBanked } = get();
+        if (!game || game.result || turnStartedAt === null) return;
+        const spent = Math.max(0, now - turnStartedAt);
+        const mover = game.moves.length % 2 === 0 ? "w" : "b";
+        const clocks = game.clocks ? { ...game.clocks, [mover]: Math.max(0, game.clocks[mover] - spent) } : null;
+        set({ game: { ...game, clocks }, turnStartedAt: null, turnBanked: (turnBanked ?? 0) + spent });
       },
-      clear: () => set({ game: null, turnStartedAt: null }),
+      /** Coming back restarts the clock; the time away does not count. */
+      resumeClock: (now = Date.now()) => {
+        const { game } = get();
+        if (game && !game.result) set({ turnStartedAt: now });
+      },
+      clear: () => set({ game: null, turnStartedAt: null, turnBanked: 0 }),
     }),
     {
       name: "bf:game",
       version: 1,
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      partialize: (s) => ({ game: s.game, turnStartedAt: s.turnStartedAt, setup: s.setup }),
+      partialize: (s) => ({ game: s.game, turnStartedAt: s.turnStartedAt, turnBanked: s.turnBanked, setup: s.setup }),
       onRehydrateStorage: () => () => {
         useGame.setState({ hydrated: true });
       },

@@ -4,8 +4,8 @@
  * rated mode only checks syntax until you press Enter (no free legality probing).
  */
 import type { Chess, Move, PieceSymbol } from "chess.js";
-import { AnimatePresence, motion } from "motion/react";
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useAnimate, useReducedMotion } from "motion/react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { IconButton } from "@/components/ui/Button";
 import { IconMic } from "@/components/ui/Icons";
 import { PIECE_NAMES } from "@/lib/chess/notation";
@@ -49,15 +49,33 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>(null);
   const [choices, setChoices] = useState<Move[] | null>(null);
-  const [shakeKey, setShakeKey] = useState(0);
   const [heard, setHeard] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const voiceEnabled = useSettings((s) => s.voiceInput);
+  const motionPref = useSettings((s) => s.motion);
+  const systemReduced = useReducedMotion();
+  const reduced = motionPref === "reduced" || (motionPref === "system" && !!systemReduced);
+  const [shell, animateShell] = useAnimate<HTMLDivElement>();
   const fen = chess.fen();
   const legal = useMemo(() => chess.moves({ verbose: true }), [chess, fen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const suggestions = useMemo(() => (hints === "autocomplete" && text.trim() ? autocompleteMoves(text, legal, 6) : []), [hints, text, legal]);
   const [activeIdx, setActiveIdx] = useState(0);
+
+  // A new position makes earlier choices and messages meaningless: a "Which one?" chip from the
+  // last position must never be playable in this one.
+  const [seenFen, setSeenFen] = useState(fen);
+  if (seenFen !== fen) {
+    setSeenFen(fen);
+    setChoices(null);
+    setStatus(null);
+    setActiveIdx(0);
+  }
+
+  // Shake the field without remounting it, so the input keeps focus.
+  const shake = () => {
+    if (!reduced && shell.current) void animateShell(shell.current, { x: [0, -8, 7, -5, 3, 0] }, { duration: 0.35 });
+  };
 
   const live: Status = useMemo(() => {
     const t = text.trim();
@@ -72,6 +90,7 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
   }, [text, hints, chess, suggestions.length]);
 
   const play = (move: Move) => {
+    if (disabled) return;
     setText("");
     setStatus(null);
     setChoices(null);
@@ -90,12 +109,12 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
         setStatus({ tone: "info", text: r.status === "promotion" ? "Promote to…" : "Which one?" });
         return true;
       case "illegal":
-        setShakeKey((k) => k + 1);
+        shake();
         setStatus({ tone: "bad", text: r.message });
         onIllegal(raw, r.message);
         return false;
       case "invalid":
-        setShakeKey((k) => k + 1);
+        shake();
         setStatus({ tone: "bad", text: "That doesn't look like a move." });
         return false;
       default:
@@ -107,18 +126,19 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
     if (disabled) return;
     const raw = text.trim();
     if (!raw) return;
-    if (hints === "autocomplete" && suggestions.length > 0) {
-      const r = resolveMoveText(raw, chess);
-      if (r.status !== "legal" && r.status !== "promotion" && r.status !== "ambiguous") {
-        // Enter picks the highlighted suggestion when the text alone isn't a move yet.
-        const pickMove = suggestions[Math.min(activeIdx, suggestions.length - 1)];
-        if (pickMove) return play(pickMove);
-      }
+    const r = resolveMoveText(raw, chess);
+    if (hints === "autocomplete" && suggestions.length > 0 && r.status === "invalid") {
+      // Enter picks the highlighted suggestion only while the text isn't a whole move yet. A
+      // complete move that happens to be illegal stays illegal: it must not turn into another.
+      const pickMove = suggestions[Math.min(activeIdx, suggestions.length - 1)];
+      if (pickMove) return play(pickMove);
     }
-    handleResolution(resolveMoveText(raw, chess), raw);
+    handleResolution(r, raw);
   };
 
   const voice = useSpeechRecognition((alts, final) => {
+    // Results that arrive after the turn has passed (or the game ended) are ignored.
+    if (disabled) return;
     setHeard(alts[0] ?? null);
     if (!final) return;
     // Try every alternative the recogniser offered; first legal interpretation wins.
@@ -142,6 +162,11 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
     else setStatus({ tone: "bad", text: `Heard “${alts[0] ?? ""}” — not a move. Try “knight f3”.` });
   });
 
+  const { stop: stopVoice } = voice;
+  useEffect(() => {
+    if (disabled) stopVoice();
+  }, [disabled, stopVoice]);
+
   useImperativeHandle(ref, () => ({
     focus: () => inputRef.current?.focus(),
     focusSoft: () => focusOnDesktop(inputRef.current),
@@ -150,7 +175,9 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
       setStatus(null);
       setChoices(null);
     },
-    startVoice: () => voice.start(),
+    startVoice: () => {
+      if (!disabled) voice.start();
+    },
   }));
 
   const shown = status ?? (hints !== "off" ? live : text.trim() ? live : null);
@@ -158,10 +185,8 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
 
   return (
     <div className={cn("relative", className)}>
-      <motion.div
-        key={shakeKey}
-        animate={shakeKey ? { x: [0, -8, 7, -5, 3, 0] } : undefined}
-        transition={{ duration: 0.35 }}
+      <div
+        ref={shell}
         className={cn(
           "flex items-center gap-2 rounded-2xl bg-night-850/90 p-1.5 pl-4 ring-1 ring-inset transition-shadow",
           shown?.tone === "bad" ? "ring-coral-400/50" : shown?.tone === "good" ? "ring-jade-400/40" : "ring-ivory-100/10 focus-within:ring-moon-400/50",
@@ -230,7 +255,7 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
         >
           Play
         </button>
-      </motion.div>
+      </div>
 
       <div id="move-input-status" className="mt-2 min-h-[22px] px-1 text-[13px]" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
@@ -279,6 +304,7 @@ export const MoveInput = forwardRef<MoveInputHandle, Props>(function MoveInput(
                   type="button"
                   role="option"
                   aria-selected={!choices && i === activeIdx}
+                  disabled={disabled}
                   onClick={() => play(m)}
                   className={cn(
                     "rounded-lg px-2.5 py-1 font-mono text-[13px] outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",

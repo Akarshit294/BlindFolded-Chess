@@ -14,6 +14,8 @@ export type SearchLimits = { depth?: number; movetime?: number; nodes?: number }
 
 type Job = {
   fen: string;
+  /** Moves from the standard start; when given the engine sees the history (repetitions). */
+  moves?: string[];
   options: Record<string, string>;
   limits: SearchLimits;
   multipv: number;
@@ -68,6 +70,8 @@ export class EngineClient {
   private readyWaiters: Array<() => void> = [];
   private uciWaiters: Array<() => void> = [];
   private statusListeners = new Set<(s: EngineStatus) => void>();
+  /** Bumped by stop(): searches requested before it are cancelled even if still starting. */
+  private epoch = 0;
   status: EngineStatus = "idle";
 
   onStatus(fn: (s: EngineStatus) => void): () => void {
@@ -95,8 +99,12 @@ export class EngineClient {
         worker.onmessage = (e: MessageEvent) => this.onLine(String(e.data));
         worker.onerror = (e) => {
           clearTimeout(timeout);
+          const err = e instanceof ErrorEvent ? new Error(e.message) : new Error("Engine worker failed");
+          reject(err);
+          // A crash after start-up must not leave a search waiting forever: fail what is
+          // pending and start a fresh worker on the next request.
+          this.reset(err);
           this.setStatus("error");
-          reject(e instanceof ErrorEvent ? new Error(e.message) : new Error("Engine worker failed"));
         };
         this.uciWaiters.push(() => {
           this.post("setoption name Hash value 32");
@@ -116,6 +124,19 @@ export class EngineClient {
       this.initPromise = null;
     });
     return this.initPromise;
+  }
+
+  private reset(err: Error) {
+    const pending = [...(this.current ? [this.current] : []), ...this.queue];
+    this.current = null;
+    this.queue = [];
+    this.readyWaiters = [];
+    this.uciWaiters = [];
+    this.worker?.terminate();
+    this.worker = null;
+    this.initPromise = null;
+    this.appliedOptions.clear();
+    for (const job of pending) job.reject(err);
   }
 
   private post(cmd: string) {
@@ -174,7 +195,7 @@ export class EngineClient {
       this.post(`setoption name ${name} value ${value}`);
       this.appliedOptions.set(name, value);
     }
-    this.post(`position fen ${job.fen}`);
+    this.post(job.moves?.length ? `position startpos moves ${job.moves.join(" ")}` : `position fen ${job.fen}`);
     const parts = ["go"];
     if (job.limits.depth) parts.push("depth", String(job.limits.depth));
     if (job.limits.movetime) parts.push("movetime", String(job.limits.movetime));
@@ -187,13 +208,18 @@ export class EngineClient {
   async search(
     fen: string,
     limits: SearchLimits,
-    opts: { multipv?: number; options?: Record<string, string>; onInfo?: (l: InfoLine) => void } = {},
+    opts: { multipv?: number; options?: Record<string, string>; onInfo?: (l: InfoLine) => void; moves?: string[] } = {},
   ): Promise<SearchResult> {
+    const epoch = this.epoch;
     await this.init();
+    // stop() while the engine was still loading cancels this search as well.
+    if (epoch !== this.epoch) return { bestmove: null, lines: [], cancelled: true };
+    if (!this.worker) throw new Error("Engine worker failed");
     const multipv = opts.multipv ?? 1;
     return new Promise<SearchResult>((resolve, reject) => {
       this.queue.push({
         fen,
+        moves: opts.moves,
         limits,
         multipv,
         options: { MultiPV: String(multipv), ...(opts.options ?? {}) },
@@ -210,6 +236,7 @@ export class EngineClient {
 
   /** Cancels queued searches and stops the running one. */
   stop() {
+    this.epoch++;
     for (const job of this.queue) job.cancelled = true;
     if (this.current) {
       this.current.cancelled = true;
@@ -244,11 +271,14 @@ export function getEngine(): EngineClient {
 
 const FULL_STRENGTH = { UCI_LimitStrength: "false", "Skill Level": "20" };
 
-/** Picks the engine's move for a level. Returns UCI or null (no legal moves / cancelled). */
+/**
+ * Picks the engine's move for a level. Returns UCI or null (no legal moves / cancelled).
+ * Pass the game's `moves` (from the standard start) so the engine can see repetitions.
+ */
 export async function pickEngineMove(
   fen: string,
   levelId: number,
-  opts: { timeBudgetMs?: number; rand?: () => number; engine?: EngineClient } = {},
+  opts: { timeBudgetMs?: number; rand?: () => number; engine?: EngineClient; moves?: string[] } = {},
 ): Promise<{ uci: string | null; cancelled: boolean; level: EngineLevel }> {
   const engine = opts.engine ?? getEngine();
   const level = getLevel(levelId);
@@ -259,7 +289,7 @@ export async function pickEngineMove(
     const res = await engine.search(
       fen,
       { depth: level.depth ?? 4, movetime: cap(2000) },
-      { multipv: level.sample.multipv, options: FULL_STRENGTH },
+      { multipv: level.sample.multipv, options: FULL_STRENGTH, moves: opts.moves },
     );
     if (res.cancelled) return { uci: null, cancelled: true, level };
     const lines = res.lines
@@ -275,7 +305,7 @@ export async function pickEngineMove(
   const options: Record<string, string> = level.uciElo
     ? { UCI_LimitStrength: "true", UCI_Elo: String(level.uciElo), "Skill Level": "20" }
     : FULL_STRENGTH;
-  const res = await engine.search(fen, { movetime: cap(level.movetime ?? 800) }, { multipv: 1, options });
+  const res = await engine.search(fen, { movetime: cap(level.movetime ?? 800) }, { multipv: 1, options, moves: opts.moves });
   return { uci: res.bestmove, cancelled: res.cancelled, level };
 }
 

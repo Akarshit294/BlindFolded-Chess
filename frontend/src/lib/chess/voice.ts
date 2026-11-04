@@ -69,7 +69,7 @@ const PROMOTE_WORDS = new Set(["promote", "promotes", "promoting", "promotion", 
 
 const CASTLE_SYMBOLS = /^\s*[0o]\s*-?\s*[0o](\s*-?\s*[0o])?\s*[+#!?]*\s*$/i;
 
-function tokenize(input: string): Token[] {
+function tokenize(input: string, homophones = true): Token[] {
   const words = input
     .toLowerCase()
     .replace(/×/g, " x ")
@@ -102,7 +102,7 @@ function tokenize(input: string): Token[] {
       continue;
     }
     const prev = tokens[tokens.length - 1];
-    if (prev?.t === "file" && w in RANK_AFTER_FILE) {
+    if (homophones && prev?.t === "file" && w in RANK_AFTER_FILE) {
       tokens.push({ t: "rank", v: RANK_AFTER_FILE[w]! });
       continue;
     }
@@ -126,11 +126,32 @@ function tokenize(input: string): Token[] {
 
 /** Parses natural-language move descriptions. Returns null when nothing move-like was found. */
 export function parseNaturalMove(input: string): MoveSpec | null {
+  return parseNaturalMoves(input)[0] ?? null;
+}
+
+/**
+ * Every plausible reading, most likely first. "rook a to d1" may be a rook from the a-file
+ * or (misheard "two") a rook from a2; the caller keeps whichever is legal.
+ */
+export function parseNaturalMoves(input: string): MoveSpec[] {
   if (CASTLE_SYMBOLS.test(input)) {
     const count = (input.match(/[0o]/gi) ?? []).length;
-    return { castle: count >= 3 ? "q" : "k" };
+    return [{ castle: count >= 3 ? "q" : "k" }];
   }
-  const tokens = tokenize(input);
+  const out: MoveSpec[] = [];
+  const seen = new Set<string>();
+  for (const homophones of [true, false]) {
+    const spec = specFromTokens(tokenize(input, homophones));
+    const key = JSON.stringify(spec);
+    if (spec && !seen.has(key)) {
+      seen.add(key);
+      out.push(spec);
+    }
+  }
+  return out;
+}
+
+function specFromTokens(tokens: Token[]): MoveSpec | null {
   if (tokens.length === 0) return null;
 
   if (tokens.some((t) => t.t === "castle")) {

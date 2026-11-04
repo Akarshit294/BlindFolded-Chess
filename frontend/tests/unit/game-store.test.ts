@@ -12,11 +12,41 @@ describe("game store", () => {
     const g = useGame.getState().start(config);
     expect(g.clocks).toEqual({ w: 60_000, b: 60_000 });
     const t0 = useGame.getState().turnStartedAt!;
-    useGame.getState().applyMove("e2e4", "e4", t0 + 5_000);
+    expect(useGame.getState().applyMove("e2e4", t0 + 5_000)).toBe(true);
     const after = useGame.getState().game!;
     expect(after.clocks!.w).toBe(60_000 - 5_000 + 2_000);
     expect(remainingMs(after, t0 + 5_000, "b", t0 + 8_000)).toBe(57_000);
     expect(remainingMs(after, t0 + 5_000, "w", t0 + 8_000)).toBe(57_000);
+  });
+
+  it("records only legal moves from the current position", () => {
+    useGame.getState().start(config);
+    // Black's move on White's turn, and a move that isn't legal at all, are refused.
+    expect(useGame.getState().applyMove("e7e5")).toBe(false);
+    expect(useGame.getState().applyMove("e2e5")).toBe(false);
+    expect(useGame.getState().applyMove("g1f3")).toBe(true);
+    // A stale choice from the previous position (White again) is refused too.
+    expect(useGame.getState().applyMove("b1c3")).toBe(false);
+    const g = useGame.getState().game!;
+    expect(g.moves).toEqual(["g1f3"]);
+    expect(g.sans).toEqual(["Nf3"]);
+  });
+
+  it("banks the time spent before a reload instead of refunding it", () => {
+    useGame.getState().start(config);
+    const t0 = useGame.getState().turnStartedAt!;
+    // Think for 50 s, leave the page, come back two minutes later, then move 4 s after that.
+    useGame.getState().pauseClock(t0 + 50_000);
+    expect(useGame.getState().turnStartedAt).toBeNull();
+    expect(useGame.getState().game!.clocks!.w).toBe(10_000);
+    expect(remainingMs(useGame.getState().game!, null, "w", t0 + 170_000)).toBe(10_000);
+    useGame.getState().resumeClock(t0 + 170_000);
+    expect(remainingMs(useGame.getState().game!, t0 + 170_000, "w", t0 + 174_000)).toBe(6_000);
+    useGame.getState().applyMove("e2e4", t0 + 174_000);
+    const g = useGame.getState().game!;
+    expect(g.clocks!.w).toBe(6_000 + 2_000);
+    expect(g.moveTimes).toEqual([54_000]);
+    expect(useGame.getState().turnBanked).toBe(0);
   });
 
   it("limits peeks and counts illegal attempts", () => {
@@ -31,8 +61,8 @@ describe("game store", () => {
 
   it("takes moves back and ends games once", () => {
     useGame.getState().start(config);
-    useGame.getState().applyMove("e2e4", "e4");
-    useGame.getState().applyMove("e7e5", "e5");
+    useGame.getState().applyMove("e2e4");
+    useGame.getState().applyMove("e7e5");
     useGame.getState().takeback(2);
     expect(useGame.getState().game!.moves).toEqual([]);
     expect(useGame.getState().game!.takebacks).toBe(1);

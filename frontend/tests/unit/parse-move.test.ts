@@ -28,6 +28,25 @@ describe("SAN parsing", () => {
     const fen2 = "rnbqkbnr/pp1ppppp/8/8/2p5/1P6/P1PPPPPP/RNBQKBNR w KQkq - 0 3";
     expect(sanOf("bxc4", fen2)).toBe("bxc4");
   });
+  it("never silently picks the bishop for bxc4 when the b-pawn can capture too", () => {
+    // 1.d4 d5 2.c4 dxc4 3.e3 Nf6 4.b3 e6: both Bf1xc4 and b3xc4 are legal.
+    const chess = new Chess();
+    for (const m of ["d4", "d5", "c4", "dxc4", "e3", "Nf6", "b3", "e6"]) chess.move(m);
+    const r = resolveMoveText("bxc4", chess);
+    expect(r.status).toBe("ambiguous");
+    expect(r.status === "ambiguous" && r.candidates.map((m) => m.san).sort()).toEqual(["Bxc4", "bxc4"]);
+    expect(sanOf("Bxc4", chess.fen())).toBe("Bxc4");
+  });
+  it("understands a spoken origin file before 'to'", () => {
+    // "rook a to d1": a rook from the a-file, not from a2 ("a two").
+    expect(sanOf("rook a to d1", "4k3/8/8/8/8/8/8/R3K3 w - - 0 1")).toBe("Rd1");
+    const chess = new Chess();
+    chess.move("d4");
+    chess.move("d5");
+    expect(sanOf("knight b to d2", chess.fen())).toBe("Nd2");
+    // ...while "e to e4" still means e2-e4.
+    expect(sanOf("e to e4")).toBe("e4");
+  });
   it("parses UCI and long algebraic", () => {
     expect(sanOf("e2e4")).toBe("e4");
     expect(sanOf("g1-f3")).toBe("Nf3");

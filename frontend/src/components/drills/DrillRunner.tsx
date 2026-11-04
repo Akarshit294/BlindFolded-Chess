@@ -78,6 +78,9 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   const [bests, setBests] = useState<Record<number, number>>({});
   const rngRef = useRef<Rng>(mulberry32(1));
   const seedRef = useRef(0);
+  // Bumped for every question request and every new or ended session: a slow generator (e.g.
+  // one waiting on the API) can't drop a late question into a session that has moved on.
+  const requestRef = useRef(0);
   const advanceTimer = useRef<number | null>(null);
   const statsRef = useRef(stats);
   useLayoutEffect(() => {
@@ -101,11 +104,13 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
 
   const nextQuestion = useCallback(
     async (lvl: number) => {
+      const request = ++requestRef.current;
       setResult(null);
       setQ(null);
       const seed = Math.floor(rngRef.current() * 2 ** 31);
       seedRef.current = seed;
       const next = await generate(lvl, mulberry32(seed), seed);
+      if (request !== requestRef.current) return;
       setQ(next);
       setQIndex((i) => i + 1);
     },
@@ -113,6 +118,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   );
 
   const begin = () => {
+    requestRef.current++;
     rngRef.current = mulberry32(randomSeed());
     setStats(ZERO);
     setQIndex(0);
@@ -141,6 +147,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
 
   const finish = useCallback(async () => {
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+    requestRef.current++;
     setPhase("done");
     const s = statsRef.current;
     const durationMs = Date.now() - startedAt;

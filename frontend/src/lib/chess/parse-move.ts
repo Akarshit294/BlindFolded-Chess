@@ -4,7 +4,7 @@
  * "castle long"). Everything resolves against the list of legal moves in the position.
  */
 import type { Chess, Move, PieceSymbol, Square } from "chess.js";
-import { parseNaturalMove, type MoveSpec } from "./voice";
+import { parseNaturalMoves, type MoveSpec } from "./voice";
 
 export type { MoveSpec };
 
@@ -70,7 +70,8 @@ export function parseNotation(raw: string): MoveSpec[] {
     if (fromFile) asPiece.fromFile = fromFile;
     if (fromRank) asPiece.fromRank = fromRank;
     out.push(asPiece);
-    // Lower-case "b" may also be the b-file: "bc4" / "bxc4" (pawn capture).
+    // Lower-case "b" is the b-file in SAN ("bxc4" is a pawn capture) but also a lazily typed
+    // bishop. Both readings are kept; if both are legal the player is asked which.
     if (pieceRaw === "b" && !fromFile && !fromRank) {
       out.push({ ...base, piece: "p", fromFile: "b" });
     }
@@ -87,11 +88,10 @@ export function parseNotation(raw: string): MoveSpec[] {
 export function interpretMoveText(raw: string): MoveSpec[] {
   const notation = parseNotation(raw);
   if (notation.length > 0) return notation;
-  const natural = parseNaturalMove(cleanMoveText(raw));
-  if (!natural) return [];
-  // "e4" said out loud means a pawn move; "knight f3" names the piece.
-  if (!natural.castle && natural.piece === undefined && !natural.from) natural.piece = "p";
-  return [natural];
+  return parseNaturalMoves(cleanMoveText(raw)).map((spec) =>
+    // "e4" said out loud means a pawn move; "knight f3" names the piece.
+    !spec.castle && spec.piece === undefined && !spec.from ? { ...spec, piece: "p" as const } : spec,
+  );
 }
 
 function isCastle(move: Move, side: "k" | "q"): boolean {
@@ -134,20 +134,22 @@ export function resolveMoveText(raw: string, chess: Chess): MoveResolution {
   return resolveSpecs(specs, chess.moves({ verbose: true }));
 }
 
+/**
+ * Resolves the readings of one input against the legal moves. Readings are alternatives, so
+ * their matches are pooled: one legal move plays, several ask the player to choose (never a
+ * silent guess between, say, a bishop and a b-pawn capture).
+ */
 export function resolveSpecs(specs: MoveSpec[], legal: Move[]): MoveResolution {
-  for (const spec of specs) {
-    const candidates = uniqueMoves(matchSpec(spec, legal));
-    if (candidates.length === 0) continue;
-    if (candidates.length === 1) return { status: "legal", move: candidates[0]! };
-    const sameSquares = candidates.every((c) => c.from === candidates[0]!.from && c.to === candidates[0]!.to);
-    if (sameSquares && candidates.every((c) => c.promotion)) return { status: "promotion", candidates };
-    return {
-      status: "ambiguous",
-      candidates,
-      message: `Ambiguous — did you mean ${candidates.map((c) => c.san).join(" or ")}?`,
-    };
-  }
-  return { status: "illegal", message: describeIllegal(specs[0]!) };
+  const candidates = uniqueMoves(specs.flatMap((spec) => matchSpec(spec, legal)));
+  if (candidates.length === 0) return { status: "illegal", message: describeIllegal(specs[0]!) };
+  if (candidates.length === 1) return { status: "legal", move: candidates[0]! };
+  const sameSquares = candidates.every((c) => c.from === candidates[0]!.from && c.to === candidates[0]!.to);
+  if (sameSquares && candidates.every((c) => c.promotion)) return { status: "promotion", candidates };
+  return {
+    status: "ambiguous",
+    candidates,
+    message: `Ambiguous — did you mean ${candidates.map((c) => c.san).join(" or ")}?`,
+  };
 }
 
 function describeIllegal(spec: MoveSpec): string {

@@ -281,7 +281,10 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [cursor, setCursor] = useState<Square | null>(null);
   const [keyboardActive, setKeyboardActive] = useState(false);
-  const [promotion, setPromotion] = useState<{ from: Square; to: Square; color: Color } | null>(null);
+  // Keyed by position: an Undo or the opponent's move closes an open picker instead of letting
+  // it submit a move for a position that is gone.
+  const [promotionAt, setPromotion] = useState<{ fen: string; from: Square; to: Square; color: Color } | null>(null);
+  const promotion = promotionAt && promotionAt.fen === fen ? promotionAt : null;
   const [fx, setFx] = useState<Fx[]>([]);
   const shakeX = useMotionValue(0);
   const dragX = useMotionValue(0);
@@ -410,13 +413,13 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
       const res = onMove(from, to, promo);
       if (res === "promotion") {
         const p = pieceAt(from);
-        setPromotion({ from, to, color: p?.color ?? (movableColor === "b" ? "b" : "w") });
+        setPromotion({ fen, from, to, color: p?.color ?? (movableColor === "b" ? "b" : "w") });
       } else if (res === "illegal") {
         doShake();
       }
       return res;
     },
-    [onMove, pieceAt, movableColor, doShake],
+    [onMove, pieceAt, movableColor, doShake, fen],
   );
 
   const handleSquareActivate = useCallback(

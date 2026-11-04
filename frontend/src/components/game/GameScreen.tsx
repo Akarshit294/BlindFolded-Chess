@@ -90,11 +90,26 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
 
   /* ------------------------------------------------------------------ restore after reload */
   useEffect(() => {
-    useGame.getState().resumeClock();
+    // Leaving (reload, closing the tab, another page) banks the time spent on this move and
+    // stops the clock; coming back restarts it.
+    const pause = () => useGame.getState().pauseClock();
+    const resume = () => useGame.getState().resumeClock();
+    // Back from the back/forward cache: restart a clock that pagehide stopped (only then).
+    const onShow = () => {
+      if (useGame.getState().turnStartedAt === null) resume();
+    };
+    resume();
+    window.addEventListener("pagehide", pause);
+    window.addEventListener("pageshow", onShow);
     inputRef.current?.focusSoft();
     if (game.moves.length === 0) playSound("start");
     const t = window.setTimeout(() => setToast((cur) => (cur?.text.startsWith("Game restored") ? null : cur)), 2600);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("pagehide", pause);
+      window.removeEventListener("pageshow", onShow);
+      pause();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
@@ -139,14 +154,16 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
 
   /* ------------------------------------------------------------------ committing moves */
   const commitMove = useCallback(
-    (move: Move, by: "you" | "engine") => {
-      useGame.getState().applyMove(move.lan, move.san);
+    (move: Move, by: "you" | "engine"): boolean => {
+      // The store re-checks legality against the real position and refuses stale moves.
+      if (!useGame.getState().applyMove(move.lan)) return false;
       playSound(moveSound(move));
       const spoken = sanToSpeech(move.san);
       announce(`${by === "you" ? "You" : level.name} played ${spoken}`);
       if (by === "engine" || settings.announceOwnMoves) void speak(spoken);
       if (visibility !== "full" && visibility !== "blind") boardRef.current?.trail(move.from, move.to);
       if (visibility === "empty") boardRef.current?.flash([move.from, move.to]);
+      return true;
     },
     [level.name, settings.announceOwnMoves, visibility],
   );
@@ -172,7 +189,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
         const st = useGame.getState();
         const remaining = st.game ? remainingMs(st.game, st.turnStartedAt, engineColor) : null;
         const budget = e2e.fast ? 40 : remaining !== null ? Math.max(80, remaining / 30) : undefined;
-        const res = await pickEngineMove(fen, level.id, { timeBudgetMs: budget });
+        const res = await pickEngineMove(fen, level.id, { timeBudgetMs: budget, moves: game.moves });
         if (cancelled || res.cancelled || !res.uci) return;
         const minDelay = e2e.fast ? 0 : 380 + Math.random() * 420;
         const elapsed = performance.now() - started;
@@ -222,8 +239,14 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
     }
     if (candidates.some((m) => m.promotion) && !promotion) return "promotion";
     const mv = candidates.find((m) => !m.promotion || m.promotion === promotion) ?? candidates[0]!;
-    commitMove(mv, "you");
-    return "ok";
+    return commitMove(mv, "you") ? "ok" : "illegal";
+  };
+
+  /** Typed or spoken moves: only on your turn, and only if still legal in this position. */
+  const onTypedMove = (m: Move) => {
+    if (!canAct) return;
+    const mv = legal.find((x) => x.lan === m.lan);
+    if (mv) commitMove(mv, "you");
   };
 
   const peek = useCallback(() => {
@@ -257,7 +280,12 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
     }
     setDrawPly(game.moves.length);
     showToast(`${level.name} is considering…`);
+    const asked = { id: game.id, ply: game.moves.length };
     const r = await evaluatePosition(fen, { depth: 10, movetime: 400 });
+    // The offer lapses if the search was cut short or the position changed meanwhile (a move,
+    // an undo, a new game): a decision about an old position must not end this one.
+    const current = useGame.getState().game;
+    if (r.cancelled || !current || current.id !== asked.id || current.moves.length !== asked.ply || current.result) return;
     const cp = r.score.mate !== null ? (r.score.mate > 0 ? 2000 : -2000) : (r.score.cp ?? 0);
     const enginePov = engineColor === "w" ? cp : -cp;
     const accept = enginePov <= -60 || (Math.abs(enginePov) <= 35 && game.moves.length >= 30);
@@ -274,8 +302,11 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   useEffect(() => {
     if (!showOver || analysis || game.moves.length < 2) return;
     const ctrl = new AbortController();
+    const gameId = game.id;
     analyzeGame(game.moves, { signal: ctrl.signal, onProgress: (d, t) => setProgress(d / t), preferServer: !e2e.fast })
       .then(async (a) => {
+        // Never write one game's analysis into another (e.g. after Rematch).
+        if (ctrl.signal.aborted || useGame.getState().game?.id !== gameId) return;
         setAnalysis(a);
         setProgress(null);
         useGame.getState().setAnalysis(summarize(a));
@@ -467,7 +498,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
                 chess={chess}
                 disabled={!canAct}
                 hints={rated ? "off" : settings.moveHints}
-                onMove={(m) => commitMove(m, "you")}
+                onMove={onTypedMove}
                 onIllegal={(raw) => registerIllegal(raw)}
               />
             </div>
