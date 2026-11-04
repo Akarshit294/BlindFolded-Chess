@@ -1,0 +1,13 @@
+# Only pyproject.toml, uv.lock, .python-version and app/ are needed in the image.
+.venv/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+scripts/
+tests/
+Dockerfile
+.dockerignore
+.gitignore
+*.md

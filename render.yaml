@@ -1,0 +1,17 @@
+# Render Blueprint for the Blindfold Chess API (https://render.com/docs/blueprint-spec).
+# With rootDir set, dockerfilePath and dockerContext are relative to backend/.
+services:
+  - type: web
+    name: blindfold-chess-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Comma-separated origins allowed to call the API, e.g.
+      # "https://blindfold-chess.example,http://localhost:3000". "*" allows any origin.
+      - key: CORS_ORIGINS
+        value: "*"
