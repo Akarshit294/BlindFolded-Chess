@@ -50,7 +50,7 @@ export function SettingsPanel() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-end justify-between gap-4">
+      <div className="rise-in flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">Settings</h1>
           <p className="mt-2 text-ivory-300">Saved automatically in this browser.</p>
@@ -58,7 +58,7 @@ export function SettingsPanel() {
         <Button variant="ghost" size="sm" icon={<IconRefresh size={15} />} onClick={() => s.reset()} data-testid="reset-settings">
           Restore defaults
         </Button>
-      </motion.div>
+      </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">

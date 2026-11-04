@@ -75,6 +75,15 @@ function StatTile({ label, value, sub, delta, trend }: { label: string; value: R
   );
 }
 
+function StatsHeader() {
+  return (
+    <div className="rise-in">
+      <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">Your progress</h1>
+      <p className="mt-2 text-ivory-300">Stored only in this browser. Export it to keep a backup or move devices.</p>
+    </div>
+  );
+}
+
 export function StatsDashboard() {
   const data = useProgress();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -136,9 +145,9 @@ export function StatsDashboard() {
 
   if (!data || !derived) {
     return (
-      <div className="mx-auto max-w-6xl space-y-4 px-4 pt-8 sm:px-6" aria-busy="true">
-        <div className="skeleton h-12 w-64" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <div className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-10 pt-8 sm:px-6" aria-busy="true">
+        <StatsHeader />
+        <div className="grid grid-cols-2 gap-3 pt-4 lg:grid-cols-6">
           {Array.from({ length: 6 }, (_, i) => (
             <div key={i} className="skeleton h-28" />
           ))}
@@ -153,10 +162,7 @@ export function StatsDashboard() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">Your progress</h1>
-          <p className="mt-2 text-ivory-300">Stored only in this browser. Export it to keep a backup or move devices.</p>
-        </motion.div>
+        <StatsHeader />
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => void doExport()} icon={<IconDownload size={15} />} data-testid="export">
             Export

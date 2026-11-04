@@ -809,7 +809,7 @@ function Coordinates({ orientation, mode }: { orientation: Orientation; mode: "e
           return (
             <div key={sq} className="absolute flex items-center justify-center" style={squareStyle(sq, orientation)}>
               <span
-                className="font-mono text-[clamp(8px,1.6vw,13px)] font-medium opacity-60"
+                className="font-mono text-[clamp(9px,1.6vw,13px)] font-medium"
                 style={{ color: dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)" }}
               >
                 {sq}

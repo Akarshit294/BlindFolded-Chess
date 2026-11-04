@@ -36,28 +36,28 @@ export function Landing() {
           <Fog density={0.55} />
         </div>
         <div className="mx-auto grid grid-cols-1 max-w-7xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:pt-20">
-          <motion.div variants={stagger} initial="hidden" animate="show">
-            <motion.div variants={rise} className="inline-flex items-center gap-2 rounded-full bg-ivory-100/[0.05] px-3 py-1 text-xs font-medium text-ivory-300 ring-1 ring-inset ring-ivory-100/10">
+          <div>
+            <div className="rise-in inline-flex items-center gap-2 rounded-full bg-ivory-100/[0.05] px-3 py-1 text-xs font-medium text-ivory-300 ring-1 ring-inset ring-ivory-100/10">
               <span className="h-1.5 w-1.5 rounded-full bg-jade-400" /> Free · open source · no sign-up
-            </motion.div>
-            <motion.h1 variants={rise} className="mt-6 text-balance text-5xl font-semibold leading-[1.02] tracking-tight text-ivory-50 sm:text-6xl lg:text-7xl">
+            </div>
+            <h1 className="rise-in rise-in-1 mt-6 text-balance text-5xl font-semibold leading-[1.02] tracking-tight text-ivory-50 sm:text-6xl lg:text-7xl">
               <span className="block">Close your eyes.</span>
               <span className="block text-balance">
                 <span className="italic text-ember-300">The board</span> is still there.
               </span>
-            </motion.h1>
-            <motion.p variants={rise} className="mt-6 max-w-xl text-lg leading-relaxed text-ivory-300">
+            </h1>
+            <p className="rise-in rise-in-2 mt-6 max-w-xl text-lg leading-relaxed text-ivory-300">
               Blindfold is a trainer for playing chess without seeing the board. Build the mental picture step by step — and watch your calculation in normal games get sharper too.
-            </motion.p>
-            <motion.div variants={rise} className="mt-8 flex flex-wrap gap-3">
+            </p>
+            <div className="rise-in rise-in-3 mt-8 flex flex-wrap gap-3">
               <LinkButton href="/play" variant="primary" size="lg" icon={<IconKnight size={19} />}>
                 Play blindfolded
               </LinkButton>
               <LinkButton href="/train" size="lg" icon={<IconTarget size={19} />}>
                 Start training
               </LinkButton>
-            </motion.div>
-            <motion.dl variants={rise} className="mt-10 grid max-w-md grid-cols-3 gap-4 text-sm">
+            </div>
+            <dl className="rise-in rise-in-4 mt-10 grid max-w-md grid-cols-3 gap-4 text-sm">
               {[
                 ["10", "engine levels"],
                 ["4,000", "puzzles"],
@@ -69,8 +69,8 @@ export function Landing() {
                   <dd className="text-ivory-500">{l}</dd>
                 </div>
               ))}
-            </motion.dl>
-          </motion.div>
+            </dl>
+          </div>
           <HeroBoard />
         </div>
       </section>

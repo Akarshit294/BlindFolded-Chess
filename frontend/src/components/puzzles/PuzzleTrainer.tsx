@@ -276,12 +276,12 @@ export function PuzzleTrainer() {
     <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
       <Confetti fire={confetti} />
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="rise-in">
           <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
             Blindfold <span className="italic text-ember-300">puzzles</span>
           </h1>
           <p className="mt-2 max-w-xl text-ivory-300">The position is only described in words. Build it in your head, then find the move.</p>
-        </motion.div>
+        </div>
         <div className="rounded-2xl bg-night-850/70 px-4 py-2.5 text-right ring-1 ring-inset ring-ivory-100/[0.07]">
           <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ivory-500">Puzzle rating</div>
           <div className="text-2xl font-semibold tracking-tight text-ivory-50" data-testid="puzzle-rating">

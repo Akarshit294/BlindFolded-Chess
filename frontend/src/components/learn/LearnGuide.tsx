@@ -64,14 +64,14 @@ const PLAN = [
 export function LearnGuide() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
-      <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="max-w-3xl">
+      <header className="rise-in max-w-3xl">
         <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
           How to see <span className="italic text-moon-300">without looking</span>
         </h1>
         <p className="mt-4 text-lg leading-relaxed text-ivory-300">
           A short guide to blindfold chess: what it trains, how the skill is built, a plan for your first month, and a little of its long history.
         </p>
-      </motion.header>
+      </header>
 
       <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="On this page" className="hidden lg:block">

@@ -48,14 +48,14 @@ export function TrainHub() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <div className="rise-in">
         <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
           Train your <span className="italic text-moon-300">mind&apos;s eye</span>
         </h1>
         <p className="mt-3 max-w-2xl text-ivory-300">
           Short, focused drills that build the skills blindfold chess is made of. Ten minutes a day beats an hour once a week.
         </p>
-      </motion.div>
+      </div>
       <motion.ul
         className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         initial="hidden"

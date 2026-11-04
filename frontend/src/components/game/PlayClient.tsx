@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getEngine } from "@/lib/engine/engine";
 import { useGame } from "@/lib/game/store";
 import { GameScreen } from "./GameScreen";
-import { GameSetup } from "./GameSetup";
+import { GameSetup, PlayHeader } from "./GameSetup";
 
 export function PlayClient() {
   const hydrated = useGame((s) => s.hydrated);
@@ -18,11 +18,14 @@ export function PlayClient() {
   }, []);
 
   if (!hydrated) {
+    // Same header as the setup screen (server-rendered), skeletons where the cards will be.
     return (
-      <div className="mx-auto grid grid-cols-1 max-w-5xl gap-6 px-4 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]" aria-busy="true" aria-label="Loading">
-        <div className="skeleton h-12 w-2/3 lg:col-span-2" />
-        <div className="skeleton h-[420px]" />
-        <div className="skeleton h-[420px]" />
+      <div className="mx-auto w-full max-w-5xl px-4 pb-10 pt-8 sm:px-6" aria-busy="true">
+        <PlayHeader />
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <div className="skeleton h-[460px] rounded-2xl" />
+          <div className="skeleton h-[460px] rounded-2xl" />
+        </div>
       </div>
     );
   }

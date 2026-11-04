@@ -26,7 +26,7 @@
   --color-ivory-200: #e2dccf;
   --color-ivory-300: #c7c0b1;
   --color-ivory-400: #a29b8d;
-  --color-ivory-500: #7d786e;
+  --color-ivory-500: #8f897d;
 
   /* Ember — warm accent, primary actions. */
   --color-ember-100: #fff1d6;
@@ -84,9 +84,9 @@
 :root,
 [data-board-theme="nocturne"] {
   --sq-light: #c9cedb;
-  --sq-dark: #6f7a96;
-  --sq-coord-light: #6f7a96;
-  --sq-coord-dark: #dfe3ec;
+  --sq-dark: #69748f;
+  --sq-coord-light: #4d556a;
+  --sq-coord-dark: #ffffff;
   --hl-last: rgba(245, 176, 78, 0.42);
   --hl-select: rgba(156, 167, 240, 0.55);
   --hl-target: rgba(14, 18, 28, 0.32);
@@ -96,8 +96,8 @@
 [data-board-theme="walnut"] {
   --sq-light: #ecd8b6;
   --sq-dark: #a8774e;
-  --sq-coord-light: #a8774e;
-  --sq-coord-dark: #f4e6cc;
+  --sq-coord-light: #795638;
+  --sq-coord-dark: #1f130a;
   --hl-last: rgba(255, 214, 102, 0.48);
   --hl-select: rgba(120, 170, 255, 0.5);
   --hl-target: rgba(60, 35, 15, 0.3);
@@ -107,8 +107,8 @@
 [data-board-theme="glacier"] {
   --sq-light: #e8eff4;
   --sq-dark: #86a3b9;
-  --sq-coord-light: #86a3b9;
-  --sq-coord-dark: #eef4f8;
+  --sq-coord-light: #4d6d85;
+  --sq-coord-dark: #0f1a24;
   --hl-last: rgba(255, 196, 92, 0.5);
   --hl-select: rgba(80, 140, 255, 0.45);
   --hl-target: rgba(20, 40, 60, 0.25);
@@ -118,8 +118,8 @@
 [data-board-theme="moss"] {
   --sq-light: #e5e8d3;
   --sq-dark: #7b9264;
-  --sq-coord-light: #7b9264;
-  --sq-coord-dark: #eef0e2;
+  --sq-coord-light: #596948;
+  --sq-coord-dark: #121a0c;
   --hl-last: rgba(250, 215, 90, 0.5);
   --hl-select: rgba(120, 160, 255, 0.45);
   --hl-target: rgba(30, 45, 20, 0.28);
@@ -129,8 +129,8 @@
 [data-board-theme="rosewood"] {
   --sq-light: #f2dfd6;
   --sq-dark: #b07a70;
-  --sq-coord-light: #b07a70;
-  --sq-coord-dark: #f8ebe5;
+  --sq-coord-light: #89554c;
+  --sq-coord-dark: #2a1210;
   --hl-last: rgba(255, 205, 110, 0.5);
   --hl-select: rgba(140, 150, 255, 0.45);
   --hl-target: rgba(60, 25, 20, 0.28);
@@ -333,3 +333,15 @@ html[data-motion="reduced"]::view-transition-new(*) {
   cursor: pointer;
 }
 .bf-range:focus-visible { box-shadow: 0 0 0 2px var(--color-night-950), 0 0 0 4px var(--color-moon-300); }
+
+/* Page-header entrance: pure CSS so it starts before hydration (good for LCP). */
+/* Starts partly visible so the element counts as painted immediately (LCP), then settles. */
+@keyframes rise-in {
+  from { opacity: 0.3; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.rise-in { animation: rise-in 0.6s var(--ease-out-expo) backwards; }
+.rise-in-1 { animation-delay: 60ms; }
+.rise-in-2 { animation-delay: 120ms; }
+.rise-in-3 { animation-delay: 180ms; }
+.rise-in-4 { animation-delay: 240ms; }

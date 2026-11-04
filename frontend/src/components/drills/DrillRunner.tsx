@@ -250,10 +250,10 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
         <Link href="/train" className="inline-flex items-center gap-1 rounded text-sm text-ivory-400 hover:text-ivory-100">
           <IconChevronLeft size={16} /> All drills
         </Link>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4">
+        <div className="rise-in mt-4">
           <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">{meta.title}</h1>
           <p className="mt-2 max-w-2xl text-ivory-300">{meta.tagline}</p>
-        </motion.div>
+        </div>
         <Card className="mt-8 p-5 sm:p-6">
           <div className="flex items-end justify-between">
             <SectionLabel className="mb-0">Level</SectionLabel>

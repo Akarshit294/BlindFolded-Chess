@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 export const BOARD_THEMES = [
-  { id: "nocturne", name: "Nocturne", light: "#c9cedb", dark: "#6f7a96" },
+  { id: "nocturne", name: "Nocturne", light: "#c9cedb", dark: "#69748f" },
   { id: "walnut", name: "Walnut", light: "#ecd8b6", dark: "#a8774e" },
   { id: "glacier", name: "Glacier", light: "#e8eff4", dark: "#86a3b9" },
   { id: "moss", name: "Moss", light: "#e5e8d3", dark: "#7b9264" },

@@ -51,10 +51,12 @@ export function ModePreview({ mode, active }: { mode: Visibility; active: boolea
         return (
           <div key={i} className="relative flex items-center justify-center" style={{ background: dark ? "var(--sq-dark)" : "var(--sq-light)" }}>
             {mode === "empty" ? (
-              <span className="font-mono text-[8px] opacity-60" style={{ color: dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)" }}>
-                {"abcd"[i % 4]}
-                {4 - Math.floor(i / 4)}
-              </span>
+              <svg viewBox="0 0 20 20" className="h-full w-full" aria-hidden="true">
+                <text x="10" y="13" textAnchor="middle" fontSize="7" fontFamily="var(--font-mono)" fill={dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)"}>
+                  {"abcd"[i % 4]}
+                  {4 - Math.floor(i / 4)}
+                </text>
+              </svg>
             ) : p ? (
               mode === "silhouette" ? (
                 <span className="h-[46%] w-[46%] rounded-full bg-[radial-gradient(circle_at_35%_30%,#eef0ff,#9ca7f0_60%,#5d66c0)]" />
@@ -71,6 +73,19 @@ export function ModePreview({ mode, active }: { mode: Visibility; active: boolea
           </div>
         );
       })}
+    </div>
+  );
+}
+
+export function PlayHeader() {
+  return (
+    <div className="rise-in">
+      <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
+        Play <span className="italic text-ember-300">blindfolded</span>
+      </h1>
+      <p className="mt-3 max-w-2xl text-ivory-300">
+        Choose how much of the board you can see, pick an opponent, and play by typing, clicking squares or speaking your moves.
+      </p>
     </div>
   );
 }
@@ -100,14 +115,7 @@ export function GameSetup({ onStart }: { onStart: (config: GameConfig) => void }
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-10 pt-8 sm:px-6">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
-        <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
-          Play <span className="italic text-ember-300">blindfolded</span>
-        </h1>
-        <p className="mt-3 max-w-2xl text-ivory-300">
-          Choose how much of the board you can see, pick an opponent, and play by typing, clicking squares or speaking your moves.
-        </p>
-      </motion.div>
+      <PlayHeader />
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Card className="p-5 sm:p-6">
@@ -123,13 +131,11 @@ export function GameSetup({ onStart }: { onStart: (config: GameConfig) => void }
                   aria-checked={active}
                   data-testid={`visibility-${m.id}`}
                   onClick={() => setSetup({ visibility: m.id })}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * i, duration: 0.4 }}
+                  style={{ animationDelay: `${60 * i}ms` }}
                   whileHover={{ y: -3 }}
                   whileTap={{ scale: 0.97 }}
                   className={cn(
-                    "group relative flex flex-col gap-2 rounded-2xl p-2.5 text-left outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
+                    "rise-in group relative flex flex-col gap-2 rounded-2xl p-2.5 text-left outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
                     active ? "bg-ember-400/10 ring-ember-400/60" : "bg-night-850/60 ring-ivory-100/[0.07] hover:ring-ivory-100/20",
                     i === 4 && "col-span-2 sm:col-span-1",
                   )}
