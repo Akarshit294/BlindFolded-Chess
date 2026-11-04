@@ -2,13 +2,21 @@
 import { motion } from "motion/react";
 
 /**
- * The brand mark: an eye that closes and gets a blindfold when `closed` is true.
+ * The brand mark: an open eye that closes (lids meet, lashes drop) when `closed` is true.
  * Lid paths share the same command structure so Motion can morph between them.
  */
 const UPPER_OPEN = "M2.5 12 C 6 5.6, 18 5.6, 21.5 12";
-const UPPER_CLOSED = "M2.5 12 C 6 15.2, 18 15.2, 21.5 12";
+const UPPER_CLOSED = "M2.5 10.8 C 6 15.6, 18 15.6, 21.5 10.8";
 const LOWER_OPEN = "M2.5 12 C 6 18.4, 18 18.4, 21.5 12";
-const LOWER_CLOSED = "M2.5 12 C 6 15.2, 18 15.2, 21.5 12";
+const LOWER_CLOSED = "M2.5 10.8 C 6 15.6, 18 15.6, 21.5 10.8";
+
+const LASHES = [
+  "M4.2 12.6 L2.8 14.6",
+  "M8 14.1 L7 16.6",
+  "M12 14.6 L12 17.4",
+  "M16 14.1 L17 16.6",
+  "M19.8 12.6 L21.2 14.6",
+];
 
 export function EyeMorph({ closed, size = 24, className }: { closed: boolean; size?: number; className?: string }) {
   const spring = { type: "spring" as const, stiffness: 260, damping: 24 };
@@ -26,7 +34,7 @@ export function EyeMorph({ closed, size = 24, className }: { closed: boolean; si
       aria-hidden="true"
     >
       <motion.path initial={false} animate={{ d: closed ? UPPER_CLOSED : UPPER_OPEN }} transition={spring} />
-      <motion.path initial={false} animate={{ d: closed ? LOWER_CLOSED : LOWER_OPEN }} transition={spring} />
+      <motion.path initial={false} animate={{ d: closed ? LOWER_CLOSED : LOWER_OPEN, opacity: closed ? 0 : 1 }} transition={spring} />
       <motion.circle
         cx="12"
         cy="12"
@@ -36,25 +44,15 @@ export function EyeMorph({ closed, size = 24, className }: { closed: boolean; si
         transition={spring}
         style={{ transformOrigin: "12px 12px" }}
       />
-      {/* Lashes appear when closed. */}
-      {[7.5, 12, 16.5].map((x, i) => (
+      {LASHES.map((d, i) => (
         <motion.path
-          key={x}
-          d={`M${x} 15.4 L${x + (i - 1) * 0.9} 17.6`}
+          key={d}
+          d={d}
           initial={false}
           animate={{ pathLength: closed ? 1 : 0, opacity: closed ? 1 : 0 }}
-          transition={{ duration: 0.3, delay: closed ? 0.15 + i * 0.04 : 0 }}
+          transition={{ duration: 0.25, delay: closed ? 0.12 + i * 0.03 : 0 }}
         />
       ))}
-      {/* The blindfold band. */}
-      <motion.path
-        d="M1.5 9.2 L22.5 9.2"
-        stroke="var(--color-ember-400)"
-        strokeWidth={3.2}
-        initial={false}
-        animate={{ pathLength: closed ? 1 : 0, opacity: closed ? 1 : 0 }}
-        transition={{ duration: 0.4, delay: closed ? 0.1 : 0, ease: [0.16, 1, 0.3, 1] }}
-      />
     </svg>
   );
 }
