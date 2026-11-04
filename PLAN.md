@@ -117,4 +117,4 @@ Legend: `[x]` done · `[ ]` open · `[~]` done with a documented deviation (see 
 ## M8 — Wrap-up
 - [x] README.md (what it is, screenshots, quickstart, architecture)
 - [x] MORNING_REPORT.md
-- [ ] Push branch, open PR to `main`
+- [x] Push branch, open PR to `main`

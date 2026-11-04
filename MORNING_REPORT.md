@@ -42,13 +42,15 @@ cburnett set is included with attribution.
 
 ## How I checked it
 
-- **Unit tests:** 106 Vitest (frontend) + 267 pytest (backend), all passing.
-- **End-to-end:** 41 Playwright tests — a full game vs Stockfish in each visibility mode (typed and clicked
-  moves), every drill answered correctly, puzzles, settings persistence, refresh restore, takeback/clock,
-  import/export, backend down and backend up, touch drag on a phone, no horizontal overflow at phone width.
+- **Unit tests:** 117 Vitest (frontend) + 267 pytest (backend), all passing.
+- **End-to-end:** 43 Playwright tests (42 run without the API; CI runs all 43 with it) — a full game vs
+  Stockfish in each visibility mode (typed and clicked moves), every drill answered correctly, puzzles,
+  settings persistence, refresh restore, takeback/clock, import/export and replay, backend down and backend
+  up, touch drag on a phone, no horizontal overflow at phone width.
 - **CI:** green on the PR (frontend, backend, e2e, Docker).
-- **Lighthouse** (mobile, throttled): accessibility, best practices and SEO 100 on every page measured;
-  performance 90–93 on landing, play, puzzles and train.
+- **Lighthouse** (mobile, throttled, median of three runs): accessibility, best practices and SEO 100 on
+  landing, play, puzzles, train and stats; performance 91–95 on the first four and 86 on stats, whose content
+  has to wait for your locally stored data.
 - **Visual review:** I screenshotted every page and the key states (mid-drag, capture, peek, check,
   checkmate, game over) at 1440 px and on phones, fixed what looked wrong (see below), and kept the best
   ones in [`docs/screenshots/`](docs/screenshots/).
@@ -59,14 +61,27 @@ out of view; inputs auto-focused on phones and popped the keyboard; a flipped ch
 low-contrast muted text and coordinates; a slow LCP because headings waited for hydration; CI type-checking
 needed Next's generated route types.
 
+A final code review of the game, input, engine, puzzle and drill logic found 11 more bugs. All are fixed, most
+with a test that fails on the old code. The ones you'd have hit:
+
+- A spoken move, or a stale "Which one?" chip, could be played on the engine's turn and desync the game.
+- An illegal move knocked focus out of the move box.
+- In practice mode, Enter could turn a complete but illegal move into a different legal one.
+- `bxc4` was read as a bishop move.
+- A reload gave back the time already spent on the current move.
+- The engine didn't know the game's history, so it couldn't avoid repetitions.
+
+The full list is in [DECISIONS.md](DECISIONS.md#code-review-pass). The Stats page also got faster: Lighthouse
+performance went from 74 to 86, after it stopped loading every drill and the replay board up front.
+
 ## Known limitations
 
 - **Voice input** relies on the browser's Web Speech API: Chrome, Edge and Safari yes; Firefox no (the mic
   button simply doesn't appear).
 - **Ratings are local and approximate.** Engine Elo labels are estimates (the lite network is weaker than full
   Stockfish but still superhuman); the blindfold/puzzle/drill ratings are motivating numbers, not official ones.
-- **Time away from a game doesn't count:** navigating away or refreshing pauses your clock (friendlier for
-  training, but a determined player could use it to think for free).
+- **Time away from a game doesn't count:** navigating away or refreshing pauses your clock. Time already
+  spent on the move still counts, but a determined player could step away to think for free.
 - **Page transitions** use the View Transitions API, so browsers without it just navigate without the fade.
 - **Free-tier API cold starts** take 30–60 s; the site works offline meanwhile and switches over when the API
   wakes.

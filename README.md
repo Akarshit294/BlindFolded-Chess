@@ -119,12 +119,14 @@ docs/       screenshots
 
 ## Tests
 
-- **Unit** — 106 Vitest tests (move/SAN/UCI parsing, voice normalisation, drill generators, accuracy
-  formulas, ratings and streaks, IndexedDB storage, piece tracking) and 267 pytest tests (every
-  endpoint, the puzzle pipeline, the pure-Python mate search, analysis formulas).
+- **Unit** — 117 Vitest tests (move/SAN/UCI parsing, voice normalisation, drill generators, accuracy
+  formulas, ratings and streaks, IndexedDB storage, piece tracking, the game store's clock and move
+  validation, the move input in jsdom, the engine client against a fake worker) and 267 pytest tests
+  (every endpoint, the puzzle pipeline, the pure-Python mate search, analysis formulas).
 - **End-to-end** — Playwright plays a full game against Stockfish in every visibility mode (typed and
-  clicked moves), answers every drill correctly, solves a puzzle, and checks settings persistence,
-  refresh restore, import/export, the backend-down fallback and the backend-up path.
+  clicked moves), answers every drill correctly, solves puzzles, and checks settings persistence,
+  refresh restore, import/export and replays, the backend-down fallback, the backend-up path, touch
+  drag on a phone and that no page scrolls sideways at phone width.
 - **CI** — GitHub Actions runs lint, type checks, unit tests and the production build for both apps, the
   Playwright suite against both servers, and a Docker build + smoke test of the API.
 

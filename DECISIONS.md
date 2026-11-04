@@ -110,13 +110,18 @@ of each section.
 - **Autofocus** of text inputs happens only on devices with a fine pointer, and never scrolls; on phones it
   popped the keyboard and pushed the page under the sticky header.
 - **Clock and navigation**: leaving the Play page (or refreshing) pauses the clock; time away is not counted.
+  The time already spent on the current move is charged when you leave (`pagehide` / unmount), so a reload
+  can't hand it back.
 - **Contrast**: muted text `ivory-500` was raised to `#8f897d` (≥ 4.9:1 on every surface). Board coordinates
   use darker text on light squares and deep text on mid-tone dark squares so every theme passes 4.5:1;
   Nocturne's dark square moved from `#6f7a96` to `#69748f` for white coordinates.
 - **LCP**: page headers animate with CSS (`.rise-in`, starting at 30 % opacity) instead of Motion, so they paint
   before hydration; client-only pages (Play, Stats) render their headers while their data loads.
-- **Lighthouse** (mobile, simulated throttling) after the passes: accessibility, best practices and SEO 100 on
-  landing, play, puzzles, train and stats; performance 90–93 on landing/play/puzzles/train.
+- **Lighthouse** (mobile, simulated throttling, median of three runs) after the passes: accessibility, best
+  practices and SEO 100 on landing, play, puzzles, train and stats; performance 91–95 on the first four and 86
+  on stats. Stats was 74 until the drill metadata moved out of the drill components (listing drills had pulled
+  in every drill, the board and chess.js) and the game replay became a lazy-loaded chunk; what remains is that
+  its content can only render after hydration and an IndexedDB read.
 - **Bundle**: ~230 KB gzipped JS is shared (React/Next ≈ 165 KB, Motion ≈ 47 KB); routes add 5–65 KB. The
   1.9 MB engine (wasm) loads only when a game or analysis starts. Converting Motion to `LazyMotion` would save
   roughly 15–20 KB but touches every animated component, so it was left for later.
@@ -125,3 +130,31 @@ of each section.
   app serving pages, engine files and puzzle data).
 - **`/lab`** is a development-only page for exercising board animations (capture, castling, en passant,
   promotion, check, mate, ghost); production builds return 404 for it.
+
+## Code review pass
+A separate review of the game, input, engine, puzzle and drill logic found eleven bugs; all were fixed, most with
+a regression test that fails on the old code.
+- **Only legal moves are recorded.** `applyMove` replays the game and rejects any move that isn't legal in the
+  current position, and typed/spoken moves are accepted only on your turn. Before, a voice result, the `M`
+  shortcut or a "Which one?" chip from an earlier position could commit a move for the wrong side and leave
+  the saved game and the board out of step.
+- **The move box keeps focus after an illegal move.** The shake used to remount the input; it now animates the
+  existing element (`useAnimate`), so the next keystrokes don't fall through to page shortcuts.
+- **Autocomplete never turns a complete but illegal move into another move**: Enter picks a suggestion only
+  while the text is unfinished. An illegal move stays illegal and is counted.
+- **Lower-case `bxc4`** is the b-pawn in SAN but may be a lazily typed bishop. When both are legal the player is
+  asked which (no silent guess); `Bxc4` is always the bishop. Readings of one input are pooled for this reason.
+- **Spoken "rook a to d1"** means a rook from the a-file; "to" after a file was always read as rank 2. Both
+  readings are now tried, and "e to e4" still means e2-e4.
+- **The engine gets the game's moves** (`position startpos moves …`), so it can see repetitions; before, it only
+  had the FEN while the rules declare threefold repetition a draw.
+- **A draw offer lapses** if the search was cut short or the position changed while the engine was considering.
+- **The promotion picker** focuses the queen once (not on every clock tick, which made underpromotion with the
+  keyboard impossible in timed games) and closes if the position changes under it.
+- **Engine robustness**: `stop()` also cancels a search still waiting for the engine to load, and a worker crash
+  fails the running search (the game shows the engine error) and starts a fresh worker next time, instead of
+  "thinking" forever.
+- **Puzzles**: the opponent's reply timer is cancelled when another puzzle loads, and you can't act while it's
+  pending; a peek no longer carries over to the next puzzle.
+- **Stale async results** are dropped: server analysis honours the abort signal (a rematch can't receive the old
+  game's analysis), and a slow drill question can't land in a session that has ended or restarted.
