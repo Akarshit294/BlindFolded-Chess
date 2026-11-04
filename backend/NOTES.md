@@ -60,8 +60,9 @@ Short notes to copy into the repository's DECISIONS.md.
   waiting more than `ENGINE_WAIT=20` s for a busy engine all return the same 503
   `{"detail":"engine unavailable"}`.
 - **Analysis values**: `mate: 0` means the side to move is checkmated (`win` says
-  who won). Draws by rule (insufficient material, 75 moves, fivefold) score
-  cp 0 but still get an engine best move. Values are computed unrounded;
+  who won). Checkmate and stalemate never reach the engine. Draws by rule
+  (insufficient material, 75 moves, fivefold) score cp 0; the engine is only
+  asked for their best move when another ply follows. Values are computed unrounded;
   `win`/`drop`/`accuracy` are rounded with Python `round(x, 1)` only in the
   response, and classification uses the unrounded drop. Input UCI is
   case-insensitive; the response echoes normalised UCI.

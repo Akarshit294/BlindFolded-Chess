@@ -62,6 +62,10 @@ def parse_game(moves: Sequence[str], initial_fen: str | None) -> tuple[chess.Boa
     return root, parsed
 
 
+def _limit(depth: int, max_time: float | None) -> chess.engine.Limit:
+    return chess.engine.Limit(depth=depth, time=max_time or None)
+
+
 @dataclass(frozen=True, slots=True)
 class Evaluation:
     """Evaluation of a position from White's point of view."""
@@ -79,25 +83,30 @@ def evaluate(
     depth: int,
     max_time: float | None,
     game: object,
+    need_best: bool = True,
 ) -> Evaluation:
     """Evaluate ``board`` (with its move stack, so repetitions are seen).
 
     Finished games are scored without the engine: checkmate is a mate in 0
-    (win 100/0), stalemate and other automatic draws are 0 cp.
+    (win 100/0), stalemate and other automatic draws are 0 cp. After a draw by
+    rule moves stay legal, so the engine is still asked for a best move when
+    ``need_best`` says another ply follows.
     """
     outcome = board.outcome(claim_draw=False)
-    if outcome is not None and outcome.termination == chess.Termination.CHECKMATE:
-        white_to_move = board.turn == chess.WHITE
-        return Evaluation(cp=None, mate=0, win=win_percent(None, 0, white_to_move=white_to_move), best=None)
-    if outcome is not None and not any(board.generate_legal_moves()):
-        return Evaluation(cp=0, mate=None, win=win_percent(0, None, white_to_move=True), best=None)
-    limit = chess.engine.Limit(depth=depth, time=max_time or None)
-    info = engine.analyse(board, limit, game=game)
+    if outcome is not None:
+        if outcome.termination == chess.Termination.CHECKMATE:
+            white_to_move = board.turn == chess.WHITE
+            return Evaluation(
+                cp=None, mate=0, win=win_percent(None, 0, white_to_move=white_to_move), best=None
+            )
+        best = None
+        if need_best and any(board.generate_legal_moves()):
+            pv = engine.analyse(board, _limit(depth, max_time), game=game).get("pv") or []
+            best = pv[0] if pv and board.is_legal(pv[0]) else None
+        return Evaluation(cp=0, mate=None, win=win_percent(0, None, white_to_move=True), best=best)
+    info = engine.analyse(board, _limit(depth, max_time), game=game)
     pv = info.get("pv") or []
     best = pv[0] if pv and board.is_legal(pv[0]) else None
-    if outcome is not None:
-        # Draw by rule (insufficient material, 75 moves, fivefold) with moves left.
-        return Evaluation(cp=0, mate=None, win=win_percent(0, None, white_to_move=True), best=best)
     score = info.get("score")
     if score is None:
         msg = "engine returned no score"
@@ -153,7 +162,14 @@ def analyse_game(
         is_best = current.best is not None and move == current.best
         before = current
         board.push(move)
-        current = evaluate(engine, board, depth=depth, max_time=max_time, game=game)
+        current = evaluate(
+            engine,
+            board,
+            depth=depth,
+            max_time=max_time,
+            game=game,
+            need_best=ply < len(moves),
+        )
         drop = win_drop(before.win, current.win, white_moved=white_moved)
         accuracy = move_accuracy(drop)
         classification = classify(drop, is_best=is_best)

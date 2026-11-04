@@ -106,6 +106,20 @@ def test_stalemate_is_a_draw(engine_client: TestClient) -> None:
 
 
 @pytest.mark.requires_stockfish
+def test_insufficient_material_is_a_draw(engine_client: TestClient) -> None:
+    # Kxd3 leaves bare kings; play may still continue afterwards.
+    start = "8/8/8/4k3/8/3q4/3K4/8 w - - 0 1"
+    body = analyse(engine_client, {"initial_fen": start, "moves": ["d2d3"], "depth": 6})
+    ply = body["plies"][0]
+    assert (ply["cp"], ply["mate"], ply["win"]) == (0, None, 50.0)
+    assert ply["best_uci"] == "d2d3"
+    assert ply["classification"] == "best"
+    longer = analyse(engine_client, {"initial_fen": start, "moves": ["d2d3", "e5f5"], "depth": 6})
+    assert longer["plies"][1]["best_uci"] is not None
+    assert longer["plies"][1]["win"] == 50.0
+
+
+@pytest.mark.requires_stockfish
 def test_empty_game_and_custom_start(engine_client: TestClient) -> None:
     body = analyse(engine_client, {"moves": [], "depth": 6})
     assert body["plies"] == []
