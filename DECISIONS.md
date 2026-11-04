@@ -37,3 +37,68 @@ of each section.
   Google Fonts.
 - `cacheComponents` (Next 16 default from create-next-app) is kept on. It means routes are kept alive (hidden) on
   navigation; all long-lived side effects (engine worker, clocks, listeners) live in effects that clean up properly.
+- **React Compiler lint rules** (`eslint-plugin-react-hooks` v6 via `eslint-config-next` 16) are kept at their
+  defaults. Instead of disabling them, code uses render-phase derived state (board piece identities, selection
+  reset), timer callbacks for transitions, `useSyncExternalStore` for browser-only values, and refs written in
+  layout effects.
+- **Docker for the frontend** is optional (`docker compose up`); it uses Next's `standalone` output, enabled only
+  when `NEXT_OUTPUT=standalone`, so Vercel builds are unaffected.
+
+## Product
+- **Brand**: "Blindfold." with an eye that closes (lids meet, lashes drop) — the eye↔closed-eye morph used for
+  mode switches. Dark "midnight + candlelight" palette: ivory text, ember (amber) for primary actions,
+  moon (lavender) for the mind's-eye/fog elements. The site is dark-only; six board themes (incl. high contrast)
+  give the colour choice where it matters.
+- **Engine levels**: ten named levels (Ember 400 → Supernova full strength). Levels 1–4 sample Stockfish's MultiPV
+  lines with a softmax temperature and an occasional deliberate slip, because even Skill Level 0 is far too strong
+  for beginners; levels 5–9 use `UCI_LimitStrength` + `UCI_Elo` (1400–2600); level 10 is unrestricted.
+  Elo labels are approximate.
+- **Visibility modes**: Full, Ghost (pieces fade `ghostDelay` seconds after each move, then fog), Silhouette
+  (neutral glowing tokens on occupied squares — no colour, no type), Empty board (all coordinates printed, last
+  move flashes), Total blindfold (no board; a "mind's eye" stage shows the last move). Check highlights and legal
+  move dots are only shown when the pieces are visible, so they never leak information.
+- **Clicking on a hidden board** selects any square (we never reveal whether a piece is there); the second click
+  attempts the move and an illegal attempt is counted.
+- **Rated mode** is disabled for the full-board warm-up. It forbids takebacks, turns move hints off (syntax-only
+  checking, so legality can't be probed) and caps peeks at 3. The blindfold rating is Elo-like (K 40 for the first
+  10 games, then 24) against the level's nominal Elo.
+- **Draw offers**: the engine accepts when it is worse by ≥0.6 pawns, or when the game is level (≤0.35) after
+  move 15. Offers are limited to one per 10 plies. Threefold repetition, the 50-move rule and insufficient
+  material end the game automatically (no claim needed); flag fall is a loss unless the opponent cannot mate.
+- **Refresh restore**: the game in progress lives in localStorage (`bf:game`) and is restored on reload; the time
+  spent away does not count against the clock.
+- **Accuracy**: Lichess-style win% from centipawns, accuracy per move from the win% drop, side accuracy as the
+  mean of the arithmetic and harmonic means. Classes: best / excellent (<2) / good / inaccuracy (≥5) / mistake
+  (≥10) / blunder (≥15 win% points). The same formulas are implemented in TypeScript and Python. Analysis tries
+  the backend first and falls back to the browser engine (≈220 ms/position, depth ≤ 12).
+- **Puzzles**: shown as text ("White: Kg1, Qd1, pawns f2 g2. Black: …"). By default the opponent's setup move is
+  already applied and named; a "harder" toggle shows the position *before* it so you apply it yourself. Any
+  checkmate is accepted on the final move. Puzzle rating: Elo vs the puzzle rating; a clean solve scores 1, a
+  clean solve after peeking 0.5, anything with mistakes/hints/give-up 0.
+- **Drill ratings** treat each session as a game against a level difficulty (800–2000) with accuracy as the score.
+- **Where's the piece?** asks three questions per game fragment (what's on a square, where is a piece, is a move
+  legal). Sequences come from the API when online, otherwise from an equivalent local generator with the same
+  seed (the two generators are not bit-identical — the seed just makes each side reproducible).
+- **Memory positions** come from real puzzle positions when the API is online, otherwise from a random legal
+  position generator.
+- **Voice**: Web Speech API recognition with up to five alternatives; each is normalised ("night"→knight,
+  "bee"→b, "to" after a file → 2, …) and the first legal interpretation wins. Spoken promotions default to a
+  queen. Speech synthesis reads the engine's moves (optionally yours). Both are optional and feature-detected.
+- **Stats** are local only (IndexedDB, localStorage fallback) with JSON export/import (merge or replace).
+  Chart colours were validated with the dataviz palette checker for the dark surface: moon-500 `#7a85df`,
+  ember-600 `#c4731b`, jade-600 `#1f8f67`.
+- **Page transitions** use React's `<ViewTransition>` (supported in Chromium, Safari, recent Firefox); other
+  browsers just navigate without the cross-fade.
+- **History facts** on the Learn page were checked against Wikipedia's "Blindfold chess" article; where sources
+  disagree (Alekhine's Chicago exhibition is dated 1933 or 1934) the text stays deliberately general.
+
+## Backend (from `backend/NOTES.md`)
+- Puzzle filter: RD ≤ 90, popularity ≥ 80, plays ≥ 200, 3–16 pieces in the solver's position, ≤ 3 solver moves.
+  `veryLong` is always excluded; `long` is excluded except for mate-in-3 (Lichess tags every 3-move puzzle `long`).
+  6.19 M rows → 716,508 verified candidates → 4,000 stratified puzzles (1,000 per goal; piece and rating buckets),
+  and a 1,200-puzzle (300 per goal, 229 KB) subset bundled with the frontend.
+- A fallback generator (`backend/scripts/generate_puzzles.py`) can create puzzles with Stockfish or a pure-Python
+  mate search if the Lichess download is ever unavailable; it was not needed.
+- 422 errors use FastAPI's list format; 404/503 use `{"detail": …}`. `/api/analysis` returns 503 when the engine
+  is missing, crashed or busy for > 20 s, and caps each position at 1 s for slow free-tier CPUs.
+- `httpx2` is the test client dependency (Starlette 1.10's TestClient moved to it).
