@@ -112,8 +112,8 @@ square pair at that distance, then one of the shortest routes.
 ```
 
 `GET /api/drills/position?pieces=6&seed=1` (pieces 3-32): a puzzle position with
-exactly that many pieces when one exists (3-16), otherwise a position from a
-simulated game, otherwise a random legal position.
+exactly that many pieces when one exists (4-16 with the bundled set), otherwise a
+position from a simulated game (6+ pieces), otherwise a random legal position.
 
 ```json
 {"seed": 1, "fen": "3k4/6R1/3K4/2P5/6p1/8/8/6r1 w - - 0 62", "pieces": 6,

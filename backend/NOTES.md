@@ -51,9 +51,10 @@ Short notes to copy into the repository's DECISIONS.md.
   move that ends the game, the last ply included.
 - **Knight route**: the distance is drawn uniformly in `[min, max]`, then a square
   pair at that distance, then one of the shortest paths uniformly.
-- **Position drill**: a puzzle's solver position with that piece count (3-16), else
-  a simulated natural game that trades down to the count (17-32, and 3), else a
-  random legal position from the standard material set. No `source` field.
+- **Position drill**: a puzzle's solver position with that piece count (4-16 with
+  the bundled data), else a simulated natural game that trades down to the count
+  (6+ pieces; in practice 17-32), else a random legal position from the standard
+  material set (in practice 3 pieces, which no bundled puzzle has). No `source` field.
 - **Analysis engine**: a lazily started pool (`ENGINE_POOL_SIZE=1`, Threads 1,
   Hash 32, `ucinewgame` per request). Each position is also capped at
   `ENGINE_MAX_TIME=1.0` s for slow free-tier CPUs. A missing binary, a crash, or

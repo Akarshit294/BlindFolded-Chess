@@ -19,6 +19,8 @@ STANDARD_SET: Final = (
     (chess.QUEEN,) + (chess.ROOK,) * 2 + (chess.BISHOP,) * 2 + (chess.KNIGHT,) * 2 + (chess.PAWN,) * 8
 )
 SIMULATION_ATTEMPTS: Final = 4
+SIMULATION_MIN_TARGET: Final = 6
+"""Below this, trading down takes long and often fails: use random positions."""
 SIMULATION_MAX_PLIES: Final = 160
 SIMULATION_MIN_PLIES: Final = 8
 STOP_PROBABILITY: Final = 0.5
@@ -141,7 +143,7 @@ def drill_position(rng: random.Random, pieces: int, puzzles: SolverPositions | N
         candidates = sorted(puzzles.with_pieces(pieces), key=lambda puzzle: puzzle.id)
     if candidates:
         return DrillPosition(board=rng.choice(candidates).solver_board(), source="puzzle")
-    simulated = simulated_position(rng, pieces)
+    simulated = simulated_position(rng, pieces) if pieces >= SIMULATION_MIN_TARGET else None
     if simulated is not None:
         return DrillPosition(board=simulated, source="game")
     return DrillPosition(board=random_position(rng, pieces), source="random")

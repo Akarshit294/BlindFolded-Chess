@@ -68,9 +68,12 @@ def test_drill_falls_back_to_games_then_random() -> None:
     game = drill_position(random.Random(5), 28, store)
     assert game.source == "game"
     assert chess.popcount(game.board.occupied) == 28
-    fallback = drill_position(random.Random(5), 3, None)
-    assert chess.popcount(fallback.board.occupied) == 3
-    assert fallback.board.is_valid()
+    for pieces in (3, 5):  # too few to trade down to quickly: straight to random
+        fallback = drill_position(random.Random(5), pieces, None)
+        assert fallback.source == "random"
+        assert chess.popcount(fallback.board.occupied) == pieces
+        assert fallback.board.is_valid()
+    assert drill_position(random.Random(5), 6, store).source == "game"
 
 
 def test_drill_is_deterministic() -> None:
