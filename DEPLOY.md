@@ -70,6 +70,9 @@ and contains everything it needs, including the Stockfish binary.
 Notes:
 
 - `NEXT_PUBLIC_API_URL` is inlined at build time — redeploy after changing it.
+- Link previews (Open Graph image) need the site's public address. Vercel provides it
+  automatically; on any other host set **`SITE_URL`** (e.g. `https://blindfold.example.org`) at
+  build time.
 - No special headers are required. The engine is the single-threaded Stockfish build, which does
   not need `SharedArrayBuffer` or cross-origin isolation (COOP/COEP).
 - The engine files (`/engine/stockfish.js` + `.wasm`, ~1.9 MB) are copied from `node_modules`

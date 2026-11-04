@@ -11,7 +11,14 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SETTINGS_BOOT_SCRIPT } from "@/lib/settings/store";
 
+// Absolute base for social preview images, resolved at build time. Set SITE_URL to the public
+// address when deploying; Vercel's production URL is picked up automatically.
+const siteUrl =
+  process.env.SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: { default: "Blindfold — learn to play chess without seeing the board", template: "%s · Blindfold" },
   description:
     "Free blindfold chess trainer: play Stockfish with the board hidden, train visualisation with drills, solve puzzles from text, and track your progress. No sign-up.",
