@@ -97,7 +97,7 @@ export function ModePicker({ value, onChange, compact = false }: { value: Visibi
               )}
             >
               <ModeGlyph mode={m.id} size={compact ? 34 : 40} className="transition-transform duration-300 group-hover:-translate-y-0.5" />
-              <span className={cn("text-center text-[0.75rem] font-semibold leading-tight", active ? "text-ink" : "text-muted")}>{m.name.replace("Total ", "")}</span>
+              <span className={cn("text-center text-[0.75rem] font-semibold leading-tight", active ? "text-ink" : "text-muted")}>{m.short ?? m.name}</span>
             </button>
           );
         })}

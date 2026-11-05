@@ -45,6 +45,13 @@ test("imports and exports progress", async ({ page }) => {
   await page.getByTestId("games-table").getByRole("button", { name: "Replay" }).click();
   const dialog = page.getByRole("dialog", { name: /Checkmate\. You win\. vs/ });
   await expect(dialog).toBeVisible();
+  // It opens on the final position; the ends of the replay disable their buttons.
+  await expect(dialog.getByLabel("Replay position after ply 7")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Last move" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "First move" }).click();
+  await expect(dialog.getByLabel("Replay position after ply 0")).toBeVisible();
+  await dialog.getByRole("button", { name: "Next move" }).click();
+  await expect(dialog.getByLabel("Replay position after ply 1")).toBeVisible();
   await dialog.getByRole("button", { name: "Last move" }).click();
   await expect(dialog.getByLabel("Replay position after ply 7")).toBeVisible();
   await page.keyboard.press("Escape");

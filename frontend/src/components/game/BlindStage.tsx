@@ -35,9 +35,9 @@ export function BlindStage({ lastSan, lastBy, ply, thinking, inCheck, engineName
       style={{ background: "var(--sq-light)" }}
       data-testid="blind-panel"
     >
-      <MeltSurface melt={1} still={reduced || e2e.fast} />
-      {/* Frosted glass over the liquid, so the move reads. */}
-      <div className="absolute inset-0 bg-[color-mix(in_oklab,var(--studio-hi)_62%,transparent)] backdrop-blur-[12px]" />
+      <MeltSurface melt={1} still={reduced || e2e.fast} ownSquares />
+      {/* Frosted glass over the liquid, heavier in the middle so the move reads. */}
+      <div className="absolute inset-0 bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--studio-hi)_78%,transparent),color-mix(in_oklab,var(--studio-hi)_36%,transparent))] backdrop-blur-[6px]" />
       <div className="relative text-ink/70">
         <EyeMorph closed size={40} />
       </div>

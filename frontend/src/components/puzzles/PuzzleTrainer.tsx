@@ -541,8 +541,9 @@ export function PuzzleTrainer() {
                 className="relative flex aspect-square w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-[0.875rem] text-center shadow-[0_0_0_1px_var(--board-edge),0_34px_60px_-32px_rgb(0_0_0/0.5)]"
                 style={{ background: "var(--sq-light)" }}
               >
-                <MeltSurface melt={1} still={still} />
-                <div className="absolute inset-0 bg-[color-mix(in_oklab,var(--studio-hi)_62%,transparent)] backdrop-blur-[12px]" />
+                <MeltSurface melt={1} still={still} ownSquares />
+                {/* A light veil so the melted board still reads through it behind the text. */}
+                <div className="absolute inset-0 bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--studio-hi)_72%,transparent),color-mix(in_oklab,var(--studio-hi)_30%,transparent))] backdrop-blur-[5px]" />
                 <span className="relative text-ink/70">
                   <EyeMorph closed size={44} />
                 </span>

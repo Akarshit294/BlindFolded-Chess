@@ -8,7 +8,7 @@ export default function NotFound() {
       <div className="relative h-44 w-72" aria-hidden="true">
         <img src="/3d/hero/light-melted-720.webp" alt="" className="theme-light-only absolute inset-0 h-full w-full scale-[1.25] object-cover [mask-image:radial-gradient(closest-side,black_60%,transparent)]" />
         <img src="/3d/hero/dark-melted-720.webp" alt="" className="theme-dark-only absolute inset-0 h-full w-full scale-[1.25] object-cover [mask-image:radial-gradient(closest-side,black_60%,transparent)]" />
-        <span className="piece-sprite absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-[62%] rotate-[78deg]" data-p="wP" />
+        <span className="piece-sprite absolute left-1/2 top-1/2 h-40 w-40 -translate-x-[46%] -translate-y-[60%] rotate-[80deg] drop-shadow-[-10px_6px_7px_rgb(0_0_0/0.38)]" data-p="wP" />
       </div>
       <p className="mt-6 text-small font-semibold text-muted">Error 404</p>
       <DisplayTitle thin="This square" bold="is empty" size="lg" className="mt-2" />

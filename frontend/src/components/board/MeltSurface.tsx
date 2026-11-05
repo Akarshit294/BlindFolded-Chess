@@ -95,11 +95,14 @@ type Props = {
   ripple?: { x: number; y: number; id: number } | null;
   /** No continuous motion: draw a still frame (reduced motion, tests). */
   still?: boolean;
+  /** There are no CSS squares underneath (puzzle, blind panel): the no-WebGL fallback draws soft ones. */
+  ownSquares?: boolean;
   className?: string;
 };
 
-export function MeltSurface({ melt, ripple = null, still = false, className }: Props) {
-  const canvas = useRef<HTMLCanvasElement>(null);
+export function MeltSurface({ melt, ripple = null, still = false, ownSquares = false, className }: Props) {
+  const host = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement | null>(null);
   const engine = useRef<Engine | null>(null);
   const anim = useRef({ target: melt, current: 0, ripple: 1, origin: [0.5, 0.5] as [number, number], t: 0, raf: 0, last: 0, frame: 0 });
   const [fallback, setFallback] = useState(false);
@@ -110,10 +113,16 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
   // The render loop lives in the setup effect; other effects reach it through this ref.
   const kickRef = useRef<() => void>(() => undefined);
 
-  // One context per board, created once.
+  // One context per mount. The canvas is made here, not in JSX: when an effect re-runs on the same element (Strict
+  // Mode, or a cached route hidden and shown again) a context lost in the cleanup could not be used again.
   useEffect(() => {
-    const c = canvas.current;
-    if (!c) return;
+    const h = host.current;
+    if (!h) return;
+    const c = document.createElement("canvas");
+    c.className = "absolute inset-0 h-full w-full";
+    c.style.opacity = "0";
+    h.appendChild(c);
+    canvas.current = c;
     // Each board starts at a different point in the flow.
     anim.current.t = Math.random() * 50;
     const gl = (c.getContext("webgl", { alpha: true, antialias: false, premultipliedAlpha: true, powerPreference: "low-power" }) ??
@@ -121,15 +130,20 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
     const vs = gl && compile(gl, gl.VERTEX_SHADER, VERT);
     const fs = gl && compile(gl, gl.FRAGMENT_SHADER, FRAG);
     const prog = gl && vs && fs ? gl.createProgram() : null;
-    if (!gl || !vs || !fs || !prog) {
+    const fail = () => {
+      c.remove();
+      canvas.current = null;
       setFallback(true);
+    };
+    if (!gl || !vs || !fs || !prog) {
+      fail();
       return;
     }
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      setFallback(true);
+      fail();
       return;
     }
     gl.useProgram(prog);
@@ -234,6 +248,8 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
       ro.disconnect();
       mo.disconnect();
       gl.getExtension("WEBGL_lose_context")?.loseContext();
+      c.remove();
+      canvas.current = null;
       engine.current = null;
       kickRef.current = () => undefined;
     };
@@ -256,12 +272,16 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
 
   if (fallback) {
     return (
-      <div
-        aria-hidden="true"
-        className={cn("pointer-events-none absolute inset-0 backdrop-blur-[1.5px] transition-opacity duration-700", className)}
-        style={{ opacity: melt > 0 ? 1 : 0, background: "color-mix(in oklab, var(--studio-hi) 18%, transparent)" }}
-      />
+      <div aria-hidden="true" className={cn("pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700", className)} style={{ opacity: melt > 0 ? 1 : 0 }}>
+        {ownSquares ? (
+          <div
+            className="absolute -inset-[4%] blur-[5px]"
+            style={{ background: "repeating-conic-gradient(var(--sq-dark) 0 25%, var(--sq-light) 0 50%) 0 0 / 23% 23%" }}
+          />
+        ) : null}
+        <div className="absolute inset-0 backdrop-blur-[1.5px]" style={{ background: "color-mix(in oklab, var(--studio-hi) 18%, transparent)" }} />
+      </div>
     );
   }
-  return <canvas ref={canvas} aria-hidden="true" className={cn("pointer-events-none absolute inset-0 h-full w-full", className)} style={{ opacity: 0 }} />;
+  return <div ref={host} aria-hidden="true" className={cn("pointer-events-none absolute inset-0", className)} />;
 }
