@@ -158,6 +158,10 @@ dialog), in both themes at 1440 and 390 px, and Lighthouse on `/` (mobile).
   placeholder no longer sits at 90 % opacity.
 - **Structure.** The puzzle position is a valid description list; the phone move bar (portalled to the body) is a
   labelled region; a running drill and its countdown have an `<h1>`.
+- **Decorative demos are inert.** The home page's little demos (typed letters, suggestion chips, captions) fade their
+  text in and out. They were already hidden from assistive technology, but a contrast check that lands mid-fade
+  sees nearly invisible text, so Lighthouse's accessibility score varied between runs. They are also `inert` now
+  (non-interactive, out of the accessibility tree), which is what they are; four Lighthouse runs in a row score 100.
 - **Focus not obscured.** `scroll-padding` keeps keyboard focus and in-page links clear of the sticky header and,
   on phones, of the dock or the move bar.
 - **Targets.** Everything meets WCAG 2.2's 24 px minimum (or its spacing exception). The small text links that are

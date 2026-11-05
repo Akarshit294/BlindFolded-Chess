@@ -112,7 +112,7 @@ export function InputShowcase() {
       </div>
       <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-3">
         <DemoCard title="Type it" text="SAN, coordinates or plain words: e4, g1f3, knight takes c6. Suggestions appear as you type.">
-          <div className="w-full max-w-[15rem]" aria-hidden="true">
+          <div className="w-full max-w-[15rem]" aria-hidden="true" inert>
             <div className="glass-well flex h-12 items-center gap-2 rounded-full px-4 text-lg font-semibold text-ink">
               <span className="text-muted">›</span>
               <span className={"demo-typed"}>
@@ -134,7 +134,7 @@ export function InputShowcase() {
           </div>
         </DemoCard>
         <DemoCard title="Tap or drag" text="Click two squares, even on a hidden board, or drag a piece when you can see it.">
-          <div className="w-36" aria-hidden="true">
+          <div className="w-36" aria-hidden="true" inert>
             <MiniBoard size={3} pieces={[{ at: [2, 0], p: "wN", className: "demo-tap-knight" }]}>
               <span className={cn("pointer-events-none absolute left-[3%] top-[69%] h-[28%] w-[28%] rounded-full border-2 border-ink", "demo-tap-from")} />
               <span className={cn("pointer-events-none absolute left-[36%] top-[3%] h-[28%] w-[28%] rounded-full border-2 border-ink", "demo-tap-to")} />
@@ -142,7 +142,7 @@ export function InputShowcase() {
           </div>
         </DemoCard>
         <DemoCard title="Say it" text="“Knight f three.” Spoken moves work in Chrome, Edge and Safari, and the engine answers out loud.">
-          <div className="flex w-full max-w-[15rem] flex-col items-center gap-4" aria-hidden="true">
+          <div className="flex w-full max-w-[15rem] flex-col items-center gap-4" aria-hidden="true" inert>
             <div className="flex items-center gap-3">
               <span className="pill-primary flex h-11 w-11 items-center justify-center rounded-full">
                 <IconMic size={20} />
@@ -224,7 +224,7 @@ export function ProgressShowcase() {
             <LinkButton href="/stats">See your stats</LinkButton>
           </div>
         </div>
-        <div className="glass-panel grid grid-cols-1 gap-6 rounded-panel p-5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] sm:p-6" aria-hidden="true">
+        <div className="glass-panel grid grid-cols-1 gap-6 rounded-panel p-5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] sm:p-6" aria-hidden="true" inert>
           <div>
             <p className="text-small text-muted">Blindfold rating</p>
             <p className="mt-1 font-display text-[2.25rem] font-bold leading-none tabular text-ink">1361</p>

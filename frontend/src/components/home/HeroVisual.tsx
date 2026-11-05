@@ -86,7 +86,7 @@ export function HeroVisual() {
           {live ? <HeroScene3D theme={theme} onReady={() => setReady(true)} onPhase={setPhase} /> : null}
         </div>
       </ViewTransition>
-      <figcaption className={cn("hv-caption", "mx-auto mt-1 h-6 max-w-sm text-center text-small text-muted")} aria-hidden="true">
+      <figcaption className={cn("hv-caption", "mx-auto mt-1 h-6 max-w-sm text-center text-small text-muted")} aria-hidden="true" inert>
         {ready && phase ? (
           <span key={phase === "hidden" ? "fading" : phase} className="hero-caption-live">
             {CAPTIONS[phase]}
