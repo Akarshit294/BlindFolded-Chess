@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { buttonClass } from "@/components/ui/Button";
 import { Kbd } from "@/components/ui/Controls";
 import { cn } from "@/lib/utils/cn";
 import { focusOnDesktop } from "@/lib/utils/hooks";
@@ -54,14 +55,14 @@ export function ChoiceButtons<T>({
             transition={{ duration: 0.35 }}
             data-testid={`choice-${String(c.value)}`}
             className={cn(
-              "relative flex min-h-16 items-center justify-center gap-3 rounded-2xl px-4 py-4 text-lg font-semibold outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
-              isCorrect ? "bg-jade-400/20 text-jade-100 ring-jade-400/60" : isWrongPick ? "bg-coral-400/20 text-coral-100 ring-coral-400/60" : "bg-night-800/80 text-ivory-50 ring-ivory-100/10 hover:bg-night-700",
-              locked && !isCorrect && !isWrongPick && "opacity-50",
+              "relative flex min-h-16 cursor-pointer items-center justify-center gap-3 rounded-panel px-4 py-4 text-lg font-semibold outline-none transition-[background,box-shadow,color,opacity] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:cursor-default",
+              isCorrect ? "bg-good text-white shadow-raised" : isWrongPick ? "bg-bad text-white shadow-raised" : "pill-secondary text-ink",
+              locked && !isCorrect && !isWrongPick && "opacity-45",
               c.className,
             )}
           >
             {c.label}
-            <span className="absolute right-3 top-3 hidden sm:block">
+            <span className="absolute right-3 top-3 hidden opacity-80 sm:block">
               <Kbd>{c.key.toUpperCase()}</Kbd>
             </span>
           </motion.button>
@@ -122,38 +123,38 @@ export function SquareEntry({
           autoCapitalize="off"
           spellCheck={false}
           data-testid="drill-input"
-          className="h-12 min-w-0 flex-1 rounded-2xl bg-night-850/90 px-4 font-mono text-lg text-ivory-50 outline-none ring-1 ring-inset ring-ivory-100/10 placeholder:font-sans placeholder:text-sm placeholder:text-ivory-500 focus:ring-moon-400/50 disabled:opacity-60"
+          className="glass-well h-12 min-w-0 flex-1 rounded-full px-5 text-lg font-semibold tabular text-ink outline-none placeholder:text-[0.9375rem] placeholder:font-normal placeholder:text-muted focus:shadow-[inset_0_0_0_1.5px_var(--ink)] disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={locked || !text.trim()}
-          className="h-12 rounded-2xl bg-gradient-to-b from-ember-300 to-ember-500 px-5 font-semibold text-night-950 outline-none focus-visible:ring-2 focus-visible:ring-moon-300 disabled:opacity-40"
+          className={buttonClass("primary", "md", "h-12 px-6")}
           data-testid="drill-submit"
         >
           Check
         </button>
       </form>
-      <div className="grid grid-cols-8 gap-1.5 sm:hidden" aria-label="Keypad">
+      <div className="grid grid-cols-8 gap-1.5 sm:hidden" role="group" aria-label="Keypad">
         {"abcdefgh".split("").map((f) => (
-          <button key={f} type="button" disabled={locked} onClick={() => append(f)} className="h-10 rounded-lg bg-night-750 font-mono text-ivory-100 active:bg-night-600">
+          <button key={f} type="button" disabled={locked} onClick={() => append(f)} className="pill-secondary h-11 rounded-control text-base font-semibold active:scale-95">
             {f}
           </button>
         ))}
         {"12345678".split("").map((r) => (
-          <button key={r} type="button" disabled={locked} onClick={() => append(r)} className="h-10 rounded-lg bg-night-750 font-mono text-ivory-100 active:bg-night-600">
+          <button key={r} type="button" disabled={locked} onClick={() => append(r)} className="pill-secondary h-11 rounded-control text-base font-semibold tabular active:scale-95">
             {r}
           </button>
         ))}
         {multi ? (
-          <button type="button" disabled={locked} onClick={() => setText((t) => t.trim().split(/\s+/).slice(0, -1).join(" "))} className="col-span-4 h-10 rounded-lg bg-night-750 text-sm text-ivory-300">
-            ⌫ square
+          <button type="button" disabled={locked} onClick={() => setText((t) => t.trim().split(/\s+/).slice(0, -1).join(" "))} className="glass-well col-span-4 h-11 rounded-control text-small font-semibold text-ink">
+            Delete square
           </button>
         ) : (
-          <button type="button" disabled={locked} onClick={() => setText("")} className="col-span-4 h-10 rounded-lg bg-night-750 text-sm text-ivory-300">
+          <button type="button" disabled={locked} onClick={() => setText("")} className="glass-well col-span-4 h-11 rounded-control text-small font-semibold text-ink">
             Clear
           </button>
         )}
-        <button type="button" disabled={locked} onClick={submit} className="col-span-4 h-10 rounded-lg bg-ember-400 text-sm font-semibold text-night-950">
+        <button type="button" disabled={locked} onClick={submit} className="pill-primary col-span-4 h-11 rounded-control text-small font-semibold">
           Check
         </button>
       </div>
@@ -164,14 +165,14 @@ export function SquareEntry({
 export function Prompt({ children, sub }: { children: ReactNode; sub?: ReactNode }) {
   return (
     <div className="mb-6">
-      <h2 className="font-display text-3xl font-semibold leading-tight text-ivory-50 sm:text-4xl" data-testid="drill-prompt">
+      <h2 className="text-[1.75rem] font-semibold leading-tight text-ink sm:text-[2.125rem]" data-testid="drill-prompt">
         {children}
       </h2>
-      {sub ? <p className="mt-2 text-ivory-400">{sub}</p> : null}
+      {sub ? <p className="mt-2 text-body text-muted">{sub}</p> : null}
     </div>
   );
 }
 
 export function Sq({ children }: { children: ReactNode }) {
-  return <span className="rounded-lg bg-ember-400/15 px-2 font-mono text-ember-200">{children}</span>;
+  return <span className="inline-block rounded-full bg-ink px-3 font-display font-bold uppercase tracking-[0.02em] text-on-ink">{children}</span>;
 }

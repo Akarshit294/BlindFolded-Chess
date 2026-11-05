@@ -3,7 +3,7 @@ import type { PieceSymbol, Square } from "chess.js";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { Board, type SquareMark } from "@/components/board/Board";
-import { PieceGlyph } from "@/components/board/PieceGlyph";
+import { PieceImage } from "@/components/board/PieceImage";
 import { Button } from "@/components/ui/Button";
 import { IconTrash } from "@/components/ui/Icons";
 import { PIECE_NAMES } from "@/lib/chess/notation";
@@ -80,13 +80,13 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
           <div className="flex items-center gap-4">
             <div className="relative h-16 w-16">
               <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90">
-                <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--color-night-600)" strokeWidth="3" />
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--line-strong)" strokeWidth="3" />
                 <motion.circle
                   cx="18"
                   cy="18"
                   r="15.5"
                   fill="none"
-                  stroke="var(--color-ember-400)"
+                  stroke="var(--ink)"
                   strokeWidth="3"
                   strokeLinecap="round"
                   initial={{ pathLength: 1 }}
@@ -94,7 +94,7 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
                   transition={{ duration: q.seconds, ease: "linear" }}
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center font-mono text-xl font-semibold text-ivory-50" data-testid="memory-countdown">
+              <span className="absolute inset-0 flex items-center justify-center text-xl font-semibold tabular text-ink" data-testid="memory-countdown">
                 {left}
               </span>
             </div>
@@ -129,11 +129,11 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
                     onClick={() => setTool(id)}
                     whileTap={{ scale: 0.9 }}
                     className={cn(
-                      "aspect-square rounded-xl p-1 outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
-                      tool === id ? "bg-ember-400/25 ring-ember-400/70" : "bg-night-750 ring-ivory-100/10 hover:bg-night-600",
+                      "aspect-square cursor-pointer rounded-control p-1 outline-none transition-[background,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]",
+                      tool === id ? "bg-ink/15 shadow-[inset_0_0_0_2px_var(--ink)]" : "pill-secondary",
                     )}
                   >
-                    <PieceGlyph set={set} color={c} type={t} className="h-full w-full" />
+                    <PieceImage set={set} color={c} type={t} className="h-full w-full" />
                   </motion.button>
                 );
               })}
@@ -147,8 +147,8 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
                   onClick={() => setTool("erase")}
                   whileTap={{ scale: 0.9 }}
                   className={cn(
-                    "row-span-2 flex items-center justify-center rounded-xl outline-none ring-1 ring-inset",
-                    tool === "erase" ? "bg-coral-400/25 text-coral-200 ring-coral-400/60" : "bg-night-750 text-ivory-300 ring-ivory-100/10",
+                    "row-span-2 flex cursor-pointer items-center justify-center rounded-control outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]",
+                    tool === "erase" ? "bg-bad text-white" : "pill-secondary text-ink",
                   )}
                 >
                   <IconTrash />
@@ -176,7 +176,7 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
           >
             Check
           </Button>
-          <span className="text-sm text-ivory-400">
+          <span className="text-small text-muted">
             {placed.size} / {target.size} placed
           </span>
         </div>
@@ -200,7 +200,7 @@ function Question({ q, locked, onAnswer }: QuestionProps<MemoryQ>) {
           }
           ariaLabel="Rebuild board"
         />
-        {locked ? <p className="text-center text-xs text-ivory-500">Showing the original position — green squares you got right.</p> : null}
+        {locked ? <p className="text-center text-small text-muted">The original position. Green squares are the ones you got right.</p> : null}
       </div>
     </div>
   );

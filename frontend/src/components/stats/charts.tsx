@@ -5,18 +5,19 @@
  * a legend for ≥2 series plus selective direct labels, a crosshair tooltip that lists every
  * series, keyboard access, and a table view for every chart.
  *
- * Series colours (validated for the dark surface): moon-500, ember-600, jade-600.
+ * Monochrome: the first series is ink, the second a dashed gray, so color is never the only cue.
  */
 import { motion } from "motion/react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { niceTicks, valueAt, type Point } from "@/lib/stats/aggregate";
 import { cn } from "@/lib/utils/cn";
 
-export const SERIES_COLORS = ["#7a85df", "#c4731b", "#1f8f67"] as const;
-const SURFACE = "#12161f";
-const GRID = "#232a3a";
-const AXIS = "#343c52";
-const MUTED = "#7d786e";
+export const SERIES_COLORS = ["var(--ink)", "var(--muted)", "var(--good)"] as const;
+const SERIES_DASH = [undefined, "6 5", "2 4"] as const;
+const SURFACE = "var(--surface)";
+const GRID = "var(--line)";
+const AXIS = "var(--line-strong)";
+const MUTED = "var(--muted)";
 
 function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
   const ref = useRef<T>(null);
@@ -39,7 +40,7 @@ export function TableToggle({ showTable, onToggle }: { showTable: boolean; onTog
       type="button"
       onClick={onToggle}
       aria-pressed={showTable}
-      className="rounded-lg px-2 py-1 text-xs font-medium text-ivory-400 outline-none ring-1 ring-inset ring-ivory-100/10 hover:text-ivory-100 focus-visible:ring-2 focus-visible:ring-moon-300"
+      className="glass-well cursor-pointer rounded-full px-3 py-1 text-caption font-semibold text-ink outline-none transition-colors hover:bg-ink/[0.08] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
     >
       {showTable ? "Chart" : "Table"}
     </button>
@@ -120,10 +121,12 @@ export function LineChart({
 
   const legend =
     live.length >= 2 ? (
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ivory-300" aria-label="Legend">
-        {live.map((s) => (
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-small text-fg" aria-label="Legend">
+        {live.map((s, i) => (
           <li key={s.id} className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded-full" style={{ background: s.color }} aria-hidden="true" />
+            <svg width="18" height="4" aria-hidden="true">
+              <line x1="1" y1="2" x2="17" y2="2" stroke={s.color} strokeWidth="2" strokeLinecap="round" strokeDasharray={SERIES_DASH[i] === undefined ? undefined : "4 3"} />
+            </svg>
             {s.label}
           </li>
         ))}
@@ -152,7 +155,7 @@ export function LineChart({
       ) : (
         <div
           ref={wrap}
-          className="relative outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-moon-300"
+          className="relative rounded-control outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
           tabIndex={0}
           role="img"
           aria-label={`${title}. Use the left and right arrow keys to read values, or switch to the table view.`}
@@ -186,7 +189,7 @@ export function LineChart({
                 </text>
               ))}
               <g clipPath={`url(#${clipId})`}>
-                {live.map((s) => {
+                {live.map((s, si) => {
                   const d = s.points.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
                   return (
                     <motion.path
@@ -194,6 +197,7 @@ export function LineChart({
                       d={d}
                       fill="none"
                       stroke={s.color}
+                      strokeDasharray={SERIES_DASH[si]}
                       strokeWidth={2}
                       strokeLinejoin="round"
                       strokeLinecap="round"
@@ -209,7 +213,7 @@ export function LineChart({
               ))}
               {labelsFit
                 ? ends.map(({ s, p }) => (
-                    <text key={s.id} x={x(p.t) + 10} y={y(p.v)} dy="0.32em" fontSize={12} fill="#e2dccf">
+                    <text key={s.id} x={x(p.t) + 10} y={y(p.v)} dy="0.32em" fontSize={12} fill="var(--ink)">
                       <tspan fontWeight={600}>{yFormat(p.v)}</tspan>
                       {live.length > 1 ? <tspan fill={MUTED}> {s.label}</tspan> : null}
                     </text>
@@ -217,7 +221,7 @@ export function LineChart({
                 : null}
               {hoverT !== null ? (
                 <g pointerEvents="none">
-                  <line x1={x(hoverT)} x2={x(hoverT)} y1={pad.t} y2={pad.t + plotH} stroke="#6c7894" strokeWidth={1} />
+                  <line x1={x(hoverT)} x2={x(hoverT)} y1={pad.t} y2={pad.t + plotH} stroke="var(--muted)" strokeWidth={1} />
                   {tooltipItems.map(({ s, v }) => (v === null ? null : <circle key={s.id} cx={x(hoverT)} cy={y(v)} r={4} fill={s.color} stroke={SURFACE} strokeWidth={2} />))}
                 </g>
               ) : null}
@@ -227,16 +231,16 @@ export function LineChart({
           )}
           {hoverT !== null ? (
             <div
-              className="pointer-events-none absolute top-1 z-10 min-w-36 rounded-xl bg-night-950/95 px-3 py-2 text-xs shadow-xl ring-1 ring-ivory-100/10"
+              className="glass-float pointer-events-none absolute top-1 z-10 min-w-36 rounded-control px-3 py-2 text-small"
               style={{ left: Math.min(Math.max(0, tipLeft + 12), Math.max(0, width - 160)) }}
               role="status"
             >
-              <div className="mb-1 text-ivory-500">{dateFmt(hoverT)}</div>
+              <div className="mb-1 text-muted">{dateFmt(hoverT)}</div>
               {tooltipItems.map(({ s, v }) => (
                 <div key={s.id} className="flex items-center gap-2">
                   <span className="h-0.5 w-3 rounded-full" style={{ background: s.color }} aria-hidden="true" />
-                  <span className="font-semibold text-ivory-50">{v === null ? "—" : yFormat(v)}</span>
-                  <span className="text-ivory-400">{s.label}</span>
+                  <span className="font-semibold tabular text-ink">{v === null ? "—" : yFormat(v)}</span>
+                  <span className="text-muted">{s.label}</span>
                 </div>
               ))}
             </div>
@@ -249,7 +253,7 @@ export function LineChart({
 
 /* ------------------------------------------------------------------ sparkline */
 export function Sparkline({ points, width = 96, height = 28, label }: { points: Point[]; width?: number; height?: number; label: string }) {
-  if (points.length < 2) return <span className="text-xs text-ivory-500">—</span>;
+  if (points.length < 2) return <span className="text-small text-muted">None yet</span>;
   const pts = points.slice(-12);
   const vs = pts.map((p) => p.v);
   const lo = Math.min(...vs);
@@ -260,14 +264,21 @@ export function Sparkline({ points, width = 96, height = 28, label }: { points: 
   const last = pts[pts.length - 1]!;
   return (
     <svg width={width} height={height} role="img" aria-label={label}>
-      <path d={d} fill="none" stroke="#7d786e" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={x(pts.length - 1)} cy={y(last.v)} r={4} fill="#c4731b" stroke={SURFACE} strokeWidth={2} />
+      <path d={d} fill="none" stroke="var(--muted)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={x(pts.length - 1)} cy={y(last.v)} r={4} fill="var(--ink)" stroke={SURFACE} strokeWidth={2} />
     </svg>
   );
 }
 
 /* ------------------------------------------------------------------ heatmap */
-const HEAT = ["#1d2331", "#5a3a1a", "#92541a", "#c4731b", "#e8932b"];
+/** Grayscale ramp: from the recessed surface to full ink. */
+const HEAT = [
+  "var(--sunken)",
+  "color-mix(in oklab, var(--ink) 24%, transparent)",
+  "color-mix(in oklab, var(--ink) 44%, transparent)",
+  "color-mix(in oklab, var(--ink) 66%, transparent)",
+  "var(--ink)",
+];
 
 function heatIndex(count: number, max: number): number {
   if (count <= 0) return 0;
@@ -287,10 +298,10 @@ export function Heatmap({ days, title }: { days: Array<{ day: number; count: num
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-[11px] text-ivory-500" aria-label="Colour scale: fewer to more activities">
+        <div className="flex items-center gap-1.5 text-caption text-muted" aria-label="Shade scale: fewer to more activities">
           Less
           {HEAT.map((c) => (
-            <span key={c} className="h-2.5 w-2.5 rounded-[3px]" style={{ background: c }} />
+            <span key={c} className="h-3 w-3 rounded-[3px]" style={{ background: c }} />
           ))}
           More
         </div>
@@ -315,17 +326,17 @@ export function Heatmap({ days, title }: { days: Array<{ day: number; count: num
                     transition={{ delay: wi * 0.015, duration: 0.25 }}
                     onPointerEnter={() => setHover(d)}
                     onPointerLeave={() => setHover(null)}
-                    className={cn("h-3.5 w-3.5 rounded-[3px] sm:h-4 sm:w-4", hover?.day === d.day && "ring-1 ring-ivory-50")}
+                    className={cn("h-3.5 w-3.5 rounded-[3px] sm:h-4 sm:w-4", hover?.day === d.day && "ring-2 ring-ink ring-offset-1 ring-offset-[var(--surface)]")}
                     style={{ background: HEAT[heatIndex(d.count, max)] }}
                   />
                 ))}
               </div>
             ))}
           </div>
-          <div className="mt-2 h-4 text-xs text-ivory-400" aria-hidden="true">
+          <div className="mt-2 h-4 text-small text-muted" aria-hidden="true">
             {hover ? (
               <>
-                <span className="font-semibold text-ivory-100">{hover.count}</span> {hover.count === 1 ? "activity" : "activities"} on {new Date(hover.day).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                <span className="font-semibold text-ink">{hover.count}</span> {hover.count === 1 ? "activity" : "activities"} on {new Date(hover.day).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
               </>
             ) : null}
           </div>
@@ -350,19 +361,19 @@ export function BarList({ items, title, format }: { items: Array<{ label: string
         <ul className="space-y-3" aria-label={title}>
           {items.map((it, i) => (
             <li key={it.label} className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-3 text-sm" title={`${it.label}: ${format(it.value)}${it.detail ? ` (${it.detail})` : ""}`}>
-              <span className="truncate text-ivory-300">{it.label}</span>
-              <span className="relative h-2.5 rounded-r bg-night-700/60">
+              <span className="truncate text-fg">{it.label}</span>
+              <span className="relative h-2.5 rounded-full bg-ink/10">
                 <motion.span
-                  className="absolute inset-y-0 left-0 rounded-r-[4px]"
+                  className="absolute inset-y-0 left-0 rounded-full"
                   style={{ background: SERIES_COLORS[0], width: `${(it.value / max) * 100}%`, transformOrigin: "left" }}
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ delay: 0.1 + i * 0.06, type: "spring", stiffness: 120, damping: 20 }}
                 />
               </span>
-              <span className="w-24 text-right text-ivory-100">
-                <span className="font-semibold">{format(it.value)}</span>
-                {it.detail ? <span className="ml-1 text-xs text-ivory-500">{it.detail}</span> : null}
+              <span className="w-24 text-right text-ink">
+                <span className="font-semibold tabular">{format(it.value)}</span>
+                {it.detail ? <span className="ml-1 text-caption text-muted">{it.detail}</span> : null}
               </span>
             </li>
           ))}
@@ -375,10 +386,10 @@ export function BarList({ items, title, format }: { items: Array<{ label: string
 /* ------------------------------------------------------------------ table & empty */
 export function DataTable({ caption, columns, rows }: { caption: string; columns: string[]; rows: string[][] }) {
   return (
-    <div className="max-h-64 overflow-auto rounded-xl ring-1 ring-inset ring-ivory-100/[0.07]">
+    <div className="glass-well max-h-64 overflow-auto rounded-control">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">{caption}</caption>
-        <thead className="sticky top-0 bg-night-800 text-xs text-ivory-400">
+        <thead className="sticky top-0 bg-surface text-small text-muted">
           <tr>
             {columns.map((c) => (
               <th key={c} scope="col" className="px-3 py-2 font-medium">
@@ -389,9 +400,9 @@ export function DataTable({ caption, columns, rows }: { caption: string; columns
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-t border-ivory-100/[0.05]">
+            <tr key={i} className="border-t border-line">
               {r.map((cell, j) => (
-                <td key={j} className={cn("px-3 py-1.5 text-ivory-200", j > 0 && "tabular")}>
+                <td key={j} className={cn("px-3 py-1.5 text-ink", j > 0 && "tabular")}>
                   {cell}
                 </td>
               ))}
@@ -405,7 +416,7 @@ export function DataTable({ caption, columns, rows }: { caption: string; columns
 
 export function EmptyChart({ text, children }: { text: string; children?: ReactNode }) {
   return (
-    <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ivory-100/10 p-6 text-center text-sm text-ivory-400">
+    <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-control border border-dashed border-line-strong p-6 text-center text-small text-muted">
       {text}
       {children}
     </div>

@@ -1,29 +1,27 @@
 "use client";
-import { motion } from "motion/react";
 import Link from "next/link";
-import { useEffect, useState, type ComponentType } from "react";
-import { IconArrowRight, IconBrain, IconDiagonal, IconGrid, IconKnight, IconPuzzle, IconSparkles, IconSquareHalf } from "@/components/ui/Icons";
+import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/Display";
+import { IconPuzzle } from "@/components/ui/Icons";
 import { getRatings, listSessions, onProgressChange } from "@/lib/storage/db";
 import type { DrillId } from "@/lib/storage/types";
-import { cn } from "@/lib/utils/cn";
 import { DRILLS } from "./catalog";
-
-const ICONS: Record<DrillId, ComponentType<{ size?: number; className?: string }>> = {
-  "square-color": IconSquareHalf,
-  coordinates: IconGrid,
-  "knight-routes": IconKnight,
-  lines: IconDiagonal,
-  "where-piece": IconBrain,
-  memory: IconSparkles,
-  puzzles: IconPuzzle,
-};
-
-const ACCENTS = ["from-ember-400/25", "from-moon-400/25", "from-jade-400/20", "from-ember-300/20", "from-moon-300/25", "from-coral-400/20", "from-ember-400/25"];
+import { DrillVisual } from "./DrillVisual";
 
 type Progress = Partial<Record<DrillId, { rating: number; sessions: number; best: number }>>;
 
+/** Last level used per drill (one tap starts there). */
+export function rememberedLevel(id: DrillId): number {
+  try {
+    return Math.max(1, Number(localStorage.getItem(`bf:drill-level:${id}`)) || 1);
+  } catch {
+    return 1;
+  }
+}
+
 export function TrainHub() {
   const [progress, setProgress] = useState<Progress>({});
+  const [levels, setLevels] = useState<Partial<Record<DrillId, number>>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -36,68 +34,65 @@ export function TrainHub() {
         p[s.drill] = cur;
       }
       setProgress(p);
+      setLevels(Object.fromEntries(DRILLS.map((d) => [d.id, rememberedLevel(d.id)])));
     };
     void load();
     return onProgressChange(() => void load());
   }, []);
 
-  const cards = [
-    ...DRILLS.map((d) => ({ id: d.id, title: d.title, tagline: d.tagline, href: `/train/${d.id}`, levels: d.levels.length })),
-    { id: "puzzles" as DrillId, title: "Blindfold puzzles", tagline: "The position is given only as text. Find mate in 1–3 or the winning move, and answer in SAN.", href: "/puzzles", levels: 4 },
-  ];
-
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
-      <div className="rise-in">
-        <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
-          Train your <span className="italic text-moon-300">mind&apos;s eye</span>
-        </h1>
-        <p className="mt-3 max-w-2xl text-ivory-300">
-          Short, focused drills that build the skills blindfold chess is made of. Ten minutes a day beats an hour once a week.
-        </p>
-      </div>
-      <motion.ul
-        className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        initial="hidden"
-        animate="show"
-        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
-      >
-        {cards.map((c, i) => {
-          const Icon = ICONS[c.id];
-          const p = progress[c.id];
+    <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
+      <PageHeader thin="Train" bold="your vision" lead="Short, focused drills for the skills blindfold chess is made of. Tap one to start; ten minutes a day beats an hour once a week." />
+      <ul className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+        {DRILLS.map((d) => {
+          const p = progress[d.id];
+          const lvl = levels[d.id] ?? 1;
           return (
-            <motion.li key={c.id} variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } } }}>
-              <Link
-                href={c.href}
-                data-testid={`drill-card-${c.id}`}
-                className="group surface relative flex h-full flex-col overflow-hidden rounded-3xl p-5 outline-none transition-transform duration-300 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-moon-300"
-              >
-                <div className={cn("pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br to-transparent opacity-70 blur-2xl transition-opacity group-hover:opacity-100", ACCENTS[i])} />
-                <div className="relative flex items-center justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-night-700 text-ivory-100 ring-1 ring-inset ring-ivory-100/10 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]">
-                    <Icon size={22} />
-                  </span>
-                  <span className="text-xs text-ivory-500">{c.levels} levels</span>
+            <li key={d.id} className="group relative" data-testid={`drill-card-${d.id}`}>
+              <div className="glass-panel flex h-full flex-col rounded-panel p-5 transition-transform duration-300 ease-out group-hover:-translate-y-1 group-focus-within:-translate-y-1">
+                <div className="flex h-28 items-center justify-center rounded-control bg-sunken/60">
+                  <DrillVisual id={d.id} />
                 </div>
-                <h2 className="relative mt-4 text-xl font-semibold text-ivory-50">{c.title}</h2>
-                <p className="relative mt-1.5 flex-1 text-sm leading-relaxed text-ivory-400">{c.tagline}</p>
-                <div className="relative mt-4 flex items-center justify-between border-t border-ivory-100/[0.06] pt-3 text-xs">
+                <h2 className="mt-5 text-title font-semibold text-ink">
+                  <Link
+                    href={`/train/${d.id}?go=1`}
+                    className="outline-none after:absolute after:inset-0 after:rounded-panel after:content-[''] focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-[var(--focus)]"
+                  >
+                    {d.title}
+                  </Link>
+                </h2>
+                <p className="mt-1.5 flex-1 text-small text-muted">{d.tagline}</p>
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3 text-small">
                   {p ? (
-                    <span className="text-ivory-400">
-                      Rating <span className="font-mono text-ivory-100">{p.rating}</span> · best <span className="font-mono text-jade-300">{p.best}%</span>
+                    <span className="text-muted">
+                      Rating <span className="font-semibold tabular text-ink">{p.rating}</span>, best <span className="font-semibold tabular text-ink">{p.best}%</span>
                     </span>
                   ) : (
-                    <span className="text-ivory-500">Not started yet</span>
+                    <span className="text-muted">Not started yet</span>
                   )}
-                  <span className="flex items-center gap-1 font-medium text-ember-300 transition-transform group-hover:translate-x-1">
-                    Train <IconArrowRight size={14} />
-                  </span>
+                  <Link href={`/train/${d.id}`} className="relative z-10 rounded-full px-1 font-semibold text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+                    Level {lvl}
+                  </Link>
                 </div>
-              </Link>
-            </motion.li>
+              </div>
+            </li>
           );
         })}
-      </motion.ul>
+        <li className="group relative" data-testid="drill-card-puzzles">
+          <div className="glass-panel flex h-full flex-col rounded-panel p-5 transition-transform duration-300 ease-out group-hover:-translate-y-1 group-focus-within:-translate-y-1">
+            <div className="flex h-28 items-center justify-center rounded-control bg-sunken/60 text-ink" aria-hidden="true">
+              <IconPuzzle size={40} strokeWidth={1.4} />
+            </div>
+            <h2 className="mt-5 text-title font-semibold text-ink">
+              <Link href="/puzzles" className="outline-none after:absolute after:inset-0 after:rounded-panel after:content-[''] focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-[var(--focus)]">
+                Blindfold puzzles
+              </Link>
+            </h2>
+            <p className="mt-1.5 flex-1 text-small text-muted">The position is given only as text. Find the mate in one to three, or the winning move, and answer in SAN.</p>
+            <div className="mt-4 border-t border-line pt-3 text-small text-muted">Opens straight onto a puzzle</div>
+          </div>
+        </li>
+      </ul>
     </div>
   );
 }

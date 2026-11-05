@@ -84,7 +84,9 @@ export function Modal({ open, onClose, title, description, children, className, 
             aria-labelledby={title ? titleId : undefined}
             aria-describedby={description ? descId : undefined}
             className={cn(
-              "glass-float relative max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-panel p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-3rem)] sm:p-7",
+              "glass-float relative max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-panel p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-3rem)] sm:p-7",
+              // One width class only, so the override always wins.
+              className?.includes("max-w-") ? null : "max-w-md",
               className,
             )}
             initial={{ opacity: 0, y: 28, scale: 0.98 }}

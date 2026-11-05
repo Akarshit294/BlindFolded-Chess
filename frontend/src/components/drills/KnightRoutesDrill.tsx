@@ -38,7 +38,7 @@ function RouteReplay({ path, blocked }: { path: Square[]; blocked: Square[] }) {
   for (const b of blocked) marks[b] = "bad";
   for (const p of path.slice(0, i + 1)) marks[p] = "path";
   marks[path[path.length - 1]!] = "target";
-  const arrows = path.slice(0, i + 1).slice(1).map((to, k) => ({ from: path[k]!, to, color: "ember" as const }));
+  const arrows = path.slice(0, i + 1).slice(1).map((to, k) => ({ from: path[k]!, to, color: "ink" as const }));
   return (
     <Board
       fen={knightFen(path[i]!)}
@@ -60,7 +60,7 @@ function Question({ q, locked, onAnswer, result }: QuestionProps<KnightRouteQ>) 
           sub={
             q.blocked.length ? (
               <>
-                Forbidden squares: <span className="font-mono text-coral-300">{q.blocked.join(" ")}</span>
+                Forbidden squares: <span className="font-semibold text-bad">{q.blocked.join(" ")}</span>
               </>
             ) : (
               "Type the squares the knight visits, e.g. “c3 d5”."
@@ -88,8 +88,8 @@ function Question({ q, locked, onAnswer, result }: QuestionProps<KnightRouteQ>) 
           }}
         />
         {!locked ? (
-          <p className="mt-3 text-sm text-ivory-500">
-            Shortest is <span className="text-ivory-300">{q.distance}</span> move{q.distance === 1 ? "" : "s"}. Start and end squares are optional.
+          <p className="mt-3 text-small text-muted">
+            Shortest is <span className="font-semibold text-ink">{q.distance}</span> move{q.distance === 1 ? "" : "s"}. Start and end squares are optional.
           </p>
         ) : null}
       </div>
@@ -97,7 +97,7 @@ function Question({ q, locked, onAnswer, result }: QuestionProps<KnightRouteQ>) 
         {shown ? (
           <RouteReplay path={shown} blocked={q.blocked} />
         ) : (
-          <div className="flex aspect-square w-full items-center justify-center rounded-[10px] bg-night-900 text-center text-sm text-ivory-500 ring-1 ring-ivory-100/[0.06]">
+          <div className="glass-well flex aspect-square w-full items-center justify-center rounded-[0.875rem] px-8 text-center text-small text-muted">
             The board appears after you answer.
           </div>
         )}

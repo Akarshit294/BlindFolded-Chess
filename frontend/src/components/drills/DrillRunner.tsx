@@ -8,8 +8,10 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { ProgressLine } from "@/components/ui/Blocks";
 import { Button } from "@/components/ui/Button";
-import { Card, SectionLabel, Segmented } from "@/components/ui/Controls";
+import { FieldLabel, Panel, Segmented } from "@/components/ui/Controls";
+import { DisplayTitle, PageHeader } from "@/components/ui/Display";
 import { IconArrowRight, IconCheck, IconChevronLeft, IconClock, IconFire, IconRefresh, IconX } from "@/components/ui/Icons";
 import { announce } from "@/lib/a11y/announcer";
 import { playSound } from "@/lib/audio/sounds";
@@ -43,6 +45,8 @@ export type QuestionProps<Q> = {
 export type DrillMeta = {
   id: DrillId;
   title: string;
+  /** The page title as a thin word and a bold word. */
+  display: [string, string];
   tagline: string;
   levels: Array<{ name: string; blurb: string }>;
   timedSeconds: number;
@@ -62,9 +66,28 @@ type Stats = { correct: number; total: number; credit: number; streak: number; b
 
 const ZERO: Stats = { correct: 0, total: 0, credit: 0, streak: 0, bestStreak: 0, answered: 0 };
 
+function readLevel(id: DrillId, max: number): number {
+  try {
+    return Math.min(max, Math.max(1, Number(localStorage.getItem(`bf:drill-level:${id}`)) || 1));
+  } catch {
+    return 1;
+  }
+}
+
 export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [level, setLevel] = useState(1);
+  const [level, setLevelState] = useState(1);
+  const setLevel = useCallback(
+    (l: number) => {
+      setLevelState(l);
+      try {
+        localStorage.setItem(`bf:drill-level:${meta.id}`, String(l));
+      } catch {
+        // Private mode: the level just isn't remembered.
+      }
+    },
+    [meta.id],
+  );
   const [timed, setTimed] = useState(false);
   const [q, setQ] = useState<Q | null>(null);
   const [qIndex, setQIndex] = useState(0);
@@ -117,7 +140,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
     [generate],
   );
 
-  const begin = () => {
+  const begin = useCallback(() => {
     requestRef.current++;
     rngRef.current = mulberry32(randomSeed());
     setStats(ZERO);
@@ -125,7 +148,19 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
     setSummary(null);
     setCount(3);
     setPhase("countdown");
-  };
+  }, []);
+
+  // The remembered level, and ?go=1 (a tap on the Train hub) starts straight away.
+  const autostarted = useRef(false);
+  useEffect(() => {
+    if (autostarted.current) return;
+    autostarted.current = true;
+    setLevelState(readLevel(meta.id, meta.levels.length));
+    if (new URLSearchParams(window.location.search).get("go") === "1") {
+      window.history.replaceState(window.history.state, "", window.location.pathname);
+      begin();
+    }
+  }, [meta.id, meta.levels.length, begin]);
 
   // Countdown 3-2-1, then the first question.
   useEffect(() => {
@@ -253,74 +288,66 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   /* ------------------------------------------------------------------ intro */
   if (phase === "intro") {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 pb-10 pt-8 sm:px-6">
-        <Link href="/train" className="inline-flex items-center gap-1 rounded text-sm text-ivory-400 hover:text-ivory-100">
+      <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
+        <Link href="/train" className="inline-flex items-center gap-1 rounded-full text-small font-semibold text-muted transition-colors hover:text-ink">
           <IconChevronLeft size={16} /> All drills
         </Link>
-        <div className="rise-in mt-4">
-          <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">{meta.title}</h1>
-          <p className="mt-2 max-w-2xl text-ivory-300">{meta.tagline}</p>
-        </div>
-        <Card className="mt-8 p-5 sm:p-6">
-          <div className="flex items-end justify-between">
-            <SectionLabel className="mb-0">Level</SectionLabel>
-            <span className="text-xs text-ivory-400">
-              Drill rating <span className="font-mono text-ivory-100">{rating}</span>
+        <PageHeader thin={meta.display[0]} bold={meta.display[1]} lead={meta.tagline} className="mt-5" />
+        <Panel className="mt-10 max-w-3xl p-5 sm:p-6">
+          <div className="flex items-baseline justify-between gap-3">
+            <FieldLabel id={`levels-${meta.id}`} className="mb-0">
+              Level
+            </FieldLabel>
+            <span className="text-small text-muted">
+              Drill rating <span className="font-semibold tabular text-ink">{rating}</span>
             </span>
           </div>
-          <div role="radiogroup" aria-label="Level" className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <div role="radiogroup" aria-labelledby={`levels-${meta.id}`} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {meta.levels.map((l, i) => {
               const active = level === i + 1;
               return (
-                <motion.button
+                <button
                   key={l.name}
                   type="button"
                   role="radio"
                   aria-checked={active}
                   data-testid={`drill-level-${i + 1}`}
                   onClick={() => setLevel(i + 1)}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.98 }}
                   className={cn(
-                    "flex items-start gap-3 rounded-2xl p-3.5 text-left outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
-                    active ? "bg-ember-400/10 ring-ember-400/60" : "bg-night-850/60 ring-ivory-100/[0.07] hover:ring-ivory-100/20",
+                    "flex cursor-pointer items-start gap-3 rounded-control p-3.5 text-left outline-none transition-[background,box-shadow,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus)] active:scale-[0.99]",
+                    active ? "pill-secondary" : "hover:bg-ink/[0.05]",
                   )}
                 >
-                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold", active ? "bg-ember-400 text-night-950" : "bg-night-700 text-ivory-300")}>
-                    {i + 1}
-                  </span>
+                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-small font-semibold tabular", active ? "bg-ink text-on-ink" : "glass-well text-ink")}>{i + 1}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-ivory-50">{l.name}</span>
-                      {bests[i + 1] !== undefined ? <span className="text-[11px] text-jade-300">best {bests[i + 1]}%</span> : null}
+                      <span className="font-semibold text-ink">{l.name}</span>
+                      {bests[i + 1] !== undefined ? <span className="text-caption font-semibold text-muted">best {bests[i + 1]}%</span> : null}
                     </span>
-                    <span className="mt-0.5 block text-[13px] leading-snug text-ivory-400">{l.blurb}</span>
+                    <span className="mt-0.5 block text-small text-muted">{l.blurb}</span>
                   </span>
-                </motion.button>
+                </button>
               );
             })}
           </div>
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div>
-              <SectionLabel>Mode</SectionLabel>
+              <FieldLabel>Mode</FieldLabel>
               <Segmented<"standard" | "timed">
                 label="Mode"
                 value={timed ? "timed" : "standard"}
                 onChange={(v) => setTimed(v === "timed")}
                 options={[
                   { value: "standard", label: `${meta.standardCount} ${meta.unit}` },
-                  { value: "timed", label: `Timed · ${meta.timedSeconds}s` },
+                  { value: "timed", label: `Timed, ${meta.timedSeconds}s` },
                 ]}
               />
             </div>
-            <Button variant="primary" size="lg" onClick={begin} data-testid="drill-start" icon={<IconArrowRight size={18} />}>
+            <Button variant="primary" size="lg" onClick={begin} data-testid="drill-start" trailingIcon={<IconArrowRight size={18} />}>
               Start
             </Button>
           </div>
-        </Card>
+        </Panel>
       </div>
     );
   }
@@ -328,15 +355,18 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   /* ------------------------------------------------------------------ countdown */
   if (phase === "countdown") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center" aria-live="assertive">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6" aria-live="assertive">
+        <p className="text-small font-semibold text-muted">
+          {meta.title}, level {level}: {levelMeta.name}
+        </p>
         <AnimatePresence mode="popLayout">
           <motion.div
             key={count}
-            initial={{ opacity: 0, scale: 0.4 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.6 }}
+            initial={{ opacity: 0, scale: 0.4, filter: "blur(10px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 1.5, filter: "blur(8px)" }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="font-display text-[9rem] font-semibold leading-none text-ember-300"
+            className="font-display text-[9rem] font-bold leading-none text-ink"
           >
             {count > 0 ? count : "Go"}
           </motion.div>
@@ -350,20 +380,19 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
     const accuracy = stats.total ? Math.round((stats.credit / stats.total) * 100) : 0;
     const delta = summary ? summary.after - summary.before : 0;
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-10 sm:px-6" data-testid="drill-done">
+      <div className="px-5 pb-10 pt-10 sm:px-8 lg:px-12" data-testid="drill-done">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="text-center">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-ivory-500">
-            {meta.title} · Level {level} · {levelMeta.name}
-          </div>
-          <h1 className="mt-3 font-sans text-6xl font-semibold tracking-tight text-ivory-50">
-            <AnimatedNumber value={accuracy} suffix="%" />
-          </h1>
-          <p className="mt-2 text-ivory-300">
-            {stats.correct} of {stats.total} correct{summary?.best ? <span className="ml-2 rounded-full bg-jade-400/15 px-2 py-0.5 text-xs font-semibold text-jade-300">New best</span> : null}
+          <p className="text-small font-semibold text-muted">
+            {meta.title}, level {level}: {levelMeta.name}
+          </p>
+          <DisplayTitle as="h1" thin="Score" bold={<AnimatedNumber value={accuracy} suffix="%" />} size="xl" className="mt-4" />
+          <p className="mt-3 text-body text-fg">
+            {stats.correct} of {stats.total} correct
+            {summary?.best ? <span className="ml-2 rounded-full bg-good px-2.5 py-0.5 text-caption font-semibold text-white">New best</span> : null}
           </p>
         </motion.div>
-        <motion.div
-          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
+        <motion.dl
+          className="mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4"
           initial="hidden"
           animate="show"
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.2 } } }}
@@ -371,27 +400,27 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
           {[
             { label: "Best streak", value: <AnimatedNumber value={stats.bestStreak} /> },
             { label: "Time", value: formatDuration(summary?.durationMs ?? 0) },
-            { label: "Per answer", value: stats.answered ? `${((summary?.durationMs ?? 0) / 1000 / stats.answered).toFixed(1)}s` : "—" },
+            { label: "Per answer", value: stats.answered ? `${((summary?.durationMs ?? 0) / 1000 / stats.answered).toFixed(1)}s` : "None" },
             {
               label: "Drill rating",
               value: (
                 <span>
                   <AnimatedNumber value={summary?.after ?? rating} />
-                  <span className={cn("ml-1 text-sm", delta >= 0 ? "text-jade-300" : "text-coral-300")}>
+                  <span className={cn("ml-1.5 font-sans text-small font-semibold", delta >= 0 ? "text-good" : "text-bad")}>
                     {delta >= 0 ? "+" : ""}
                     {delta}
                   </span>
                 </span>
               ),
             },
-          ].map((s) => (
-            <motion.div key={s.label} variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} className="rounded-2xl bg-night-850/70 p-4 ring-1 ring-inset ring-ivory-100/[0.06]">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ivory-500">{s.label}</div>
-              <div className="mt-1 text-2xl font-semibold tracking-tight text-ivory-50">{s.value}</div>
+          ].map((st) => (
+            <motion.div key={st.label} variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} className="glass-panel rounded-panel p-4">
+              <dt className="text-small text-muted">{st.label}</dt>
+              <dd className="mt-2 font-display text-[1.875rem] font-bold leading-none tabular text-ink">{st.value}</dd>
             </motion.div>
           ))}
-        </motion.div>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
+        </motion.dl>
+        <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Button variant="primary" size="lg" onClick={begin} icon={<IconRefresh size={18} />} data-testid="drill-again">
             Again
           </Button>
@@ -400,9 +429,9 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
               size="lg"
               onClick={() => {
                 setLevel(level + 1);
-                setPhase("intro");
+                begin();
               }}
-              icon={<IconArrowRight size={18} />}
+              trailingIcon={<IconArrowRight size={18} />}
             >
               Next level
             </Button>
@@ -417,33 +446,23 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
 
   /* ------------------------------------------------------------------ running */
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 pb-10 pt-6 sm:px-6" data-testid="drill-running">
-      <div className="mb-5 flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => void finish()}
-          className="rounded-lg px-2 py-1 text-sm text-ivory-400 outline-none hover:text-ivory-100 focus-visible:ring-2 focus-visible:ring-moon-300"
-        >
+    <div className="px-5 pb-10 pt-4 sm:px-8 lg:px-12 lg:pt-6" data-testid="drill-running">
+      <div className="mb-7 flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={() => void finish()}>
           End
-        </button>
-        <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-night-700" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
-          <motion.div
-            className={cn("absolute inset-0 origin-left rounded-full", timed && progress < 0.2 ? "bg-coral-400" : "bg-gradient-to-r from-moon-400 to-ember-400")}
-            animate={{ scaleX: progress }}
-            transition={timed ? { duration: 0.1, ease: "linear" } : { type: "spring", stiffness: 200, damping: 30 }}
-          />
-        </div>
-        <div className="flex items-center gap-3 text-sm">
+        </Button>
+        <ProgressLine value={progress} label={timed ? "Time left" : "Progress"} tone={timed && progress < 0.2 ? "bad" : "ink"} className="flex-1" />
+        <div className="flex items-center gap-3 text-small">
           {timed ? (
-            <span className="flex items-center gap-1 font-mono text-ivory-200 tabular">
+            <span className="flex items-center gap-1 font-semibold tabular text-ink">
               <IconClock size={15} /> {Math.max(0, Math.ceil((endsAt - now) / 1000))}s
             </span>
           ) : (
-            <span className="font-mono text-ivory-400 tabular">
+            <span className="tabular text-muted">
               {Math.min(stats.answered + 1, meta.standardCount)}/{meta.standardCount}
             </span>
           )}
-          <span className="font-mono font-semibold text-ivory-50 tabular" data-testid="drill-score">
+          <span className="glass-well rounded-full px-2.5 py-0.5 font-semibold tabular text-ink" data-testid="drill-score" aria-label={`Score ${stats.correct}`}>
             {stats.correct}
           </span>
           <AnimatePresence>
@@ -453,7 +472,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-0.5 font-mono text-ember-300"
+                className="flex items-center gap-0.5 font-semibold tabular text-ink"
                 aria-label={`Streak ${stats.streak}`}
               >
                 <IconFire size={15} />
@@ -471,7 +490,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
               key={qIndex}
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
+              exit={{ opacity: 0, x: -30, transition: { duration: 0.16 } }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             >
               <Question q={q} level={level} locked={!!result} onAnswer={onAnswer} result={result} />
@@ -497,12 +516,9 @@ function Feedback({ result, onNext }: { result: AnswerResult | null; onNext: () 
           key="fb"
           initial={{ opacity: 0, y: 10, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 6 }}
+          exit={{ opacity: 0, y: 6, transition: { duration: 0.15 } }}
           transition={{ type: "spring", stiffness: 420, damping: 30 }}
-          className={cn(
-            "mt-5 flex flex-wrap items-center gap-3 rounded-2xl p-4 ring-1 ring-inset",
-            result.correct ? "bg-jade-500/10 ring-jade-400/30" : "bg-coral-500/10 ring-coral-400/30",
-          )}
+          className="glass-panel mt-6 flex flex-wrap items-center gap-3 rounded-panel p-4"
           role="status"
           data-testid="drill-feedback"
           data-correct={result.correct}
@@ -511,18 +527,18 @@ function Feedback({ result, onNext }: { result: AnswerResult | null; onNext: () 
             initial={{ scale: 0, rotate: -30 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 500, damping: 18 }}
-            className={cn("flex h-9 w-9 items-center justify-center rounded-full", result.correct ? "bg-jade-400 text-night-950" : "bg-coral-400 text-night-950")}
+            className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white", result.correct ? "bg-good" : "bg-bad")}
           >
-            {result.correct ? <IconCheck size={20} /> : <IconX size={20} />}
+            {result.correct ? <IconCheck size={20} strokeWidth={2.2} /> : <IconX size={20} strokeWidth={2.2} />}
           </motion.span>
-          <div className="min-w-0 flex-1 text-sm">
-            <div className={cn("font-semibold", result.correct ? "text-jade-200" : "text-coral-200")}>
+          <div className="min-w-0 flex-1 text-[0.9375rem]">
+            <div className={cn("font-semibold", result.correct ? "text-good" : "text-bad")}>
               {result.correct ? (result.credit !== undefined && result.credit < 1 ? "Partly right" : "Correct") : "Not quite"}
             </div>
-            {result.expected ? <div className="text-ivory-200">{result.expected}</div> : null}
-            {result.note ? <div className="text-ivory-400">{result.note}</div> : null}
+            {result.expected ? <div className="text-fg">{result.expected}</div> : null}
+            {result.note ? <div className="text-small text-muted">{result.note}</div> : null}
           </div>
-          <Button size="sm" onClick={onNext} data-testid="drill-next" icon={<IconArrowRight size={15} />}>
+          <Button size="sm" variant="primary" onClick={onNext} data-testid="drill-next" trailingIcon={<IconArrowRight size={15} />}>
             Next
           </Button>
         </motion.div>

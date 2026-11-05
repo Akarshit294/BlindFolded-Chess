@@ -26,10 +26,10 @@ export function ReplayModal({ game, onClose }: { game: GameRecord; onClose: () =
   return (
     <Modal open onClose={onClose} title={`${describeResult(game.result!, game.config.playerColor).title} vs ${getLevel(game.config.levelId).name}`} className="max-w-5xl">
       {!analysis && game.moves.length >= 2 ? (
-        <div className="mb-3 flex items-center gap-3 text-xs text-ivory-400">
+        <div className="mb-4 flex items-center gap-3 text-small text-muted">
           Analysing…
-          <div className="h-1.5 w-48 overflow-hidden rounded-full bg-night-700">
-            <motion.div className="h-full origin-left bg-moon-400" animate={{ scaleX: progress }} />
+          <div className="h-1 w-48 overflow-hidden rounded-full bg-ink/10">
+            <motion.div className="h-full origin-left bg-ink" animate={{ scaleX: progress }} />
           </div>
         </div>
       ) : null}

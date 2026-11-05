@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DRILLS } from "@/components/drills/catalog";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { EmptyState } from "@/components/ui/Blocks";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Controls";
+import { Panel } from "@/components/ui/Controls";
+import { PageHeader } from "@/components/ui/Display";
 import { IconDownload, IconTrash, IconUpload } from "@/components/ui/Icons";
 import { Modal } from "@/components/ui/Modal";
 import { getLevel } from "@/lib/engine/levels";
@@ -52,41 +54,29 @@ function useProgress(): Data | null {
   return data;
 }
 
-function StatTile({ label, value, sub, delta, trend }: { label: string; value: ReactNode; sub?: ReactNode; delta?: number | null; trend?: ReactNode }) {
+function StatTile({ label, value, sub, delta }: { label: string; value: ReactNode; sub?: ReactNode; delta?: number | null }) {
   return (
     <motion.div
       variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } } }}
-      className="surface flex flex-col justify-between rounded-2xl p-4"
+      className="glass-panel flex flex-col justify-between rounded-panel p-4 sm:p-5"
     >
-      <div className="text-xs font-medium text-ivory-400">{label}</div>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <div>
-          <div className="text-[28px] font-semibold leading-none tracking-tight text-ivory-50">{value}</div>
-          {sub || (delta !== undefined && delta !== null) ? (
-            <div className="mt-1.5 flex items-center gap-2 text-xs text-ivory-500">
-              {delta !== undefined && delta !== null && delta !== 0 ? (
-                <span className={cn("font-semibold", delta > 0 ? "text-jade-300" : "text-coral-300")}>
-                  {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
-                </span>
-              ) : null}
-              {sub}
-            </div>
+      <div className="text-small text-muted">{label}</div>
+      <div className="mt-3 font-display text-[2rem] font-bold leading-none tabular text-ink">{value}</div>
+      {sub || (delta !== undefined && delta !== null) ? (
+        <div className="mt-2 flex items-center gap-2 text-caption text-muted">
+          {delta !== undefined && delta !== null && delta !== 0 ? (
+            <span className={cn("font-semibold", delta > 0 ? "text-good" : "text-bad")}>
+              {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
+            </span>
           ) : null}
+          {sub}
         </div>
-        {trend}
-      </div>
+      ) : null}
     </motion.div>
   );
 }
 
-function StatsHeader() {
-  return (
-    <div className="rise-in">
-      <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">Your progress</h1>
-      <p className="mt-2 text-ivory-300">Stored only in this browser. Export it to keep a backup or move devices.</p>
-    </div>
-  );
-}
+const HEADER = { thin: "Your", bold: "progress", lead: "Stored only in this browser. Export it to keep a backup or move devices." };
 
 export function StatsDashboard() {
   const data = useProgress();
@@ -149,14 +139,14 @@ export function StatsDashboard() {
 
   if (!data || !derived) {
     return (
-      <div className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-10 pt-8 sm:px-6" aria-busy="true">
-        <StatsHeader />
-        <div className="grid grid-cols-2 gap-3 pt-4 lg:grid-cols-6">
+      <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10" aria-busy="true">
+        <PageHeader {...HEADER} />
+        <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="skeleton h-28" />
+            <div key={i} className="skeleton h-32 rounded-panel" />
           ))}
         </div>
-        <div className="skeleton h-72" />
+        <div className="skeleton mt-6 h-72 rounded-panel" />
       </div>
     );
   }
@@ -164,60 +154,66 @@ export function StatsDashboard() {
   const { totals, ptotals, streak, ratings } = derived;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <StatsHeader />
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => void doExport()} icon={<IconDownload size={15} />} data-testid="export">
-            Export
-          </Button>
-          <Button size="sm" onClick={() => fileRef.current?.click()} icon={<IconUpload size={15} />} data-testid="import">
-            Import
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => setConfirmReset(true)} icon={<IconTrash size={15} />}>
-            Reset
-          </Button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            data-testid="import-file"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onFile(f);
-              e.target.value = "";
-            }}
-          />
-        </div>
-      </div>
+    <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
+      <PageHeader
+        {...HEADER}
+        actions={
+          <>
+            <Button size="sm" onClick={() => void doExport()} icon={<IconDownload size={15} />} data-testid="export">
+              Export
+            </Button>
+            <Button size="sm" onClick={() => fileRef.current?.click()} icon={<IconUpload size={15} />} data-testid="import">
+              Import
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setConfirmReset(true)} icon={<IconTrash size={15} />}>
+              Reset
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              data-testid="import-file"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onFile(f);
+                e.target.value = "";
+              }}
+            />
+          </>
+        }
+      />
       {importMsg ? (
-        <p className="mt-3 text-sm text-moon-200" role="status" data-testid="import-message">
+        <p className="mt-4 text-small font-semibold text-ink" role="status" data-testid="import-message">
           {importMsg}
         </p>
       ) : null}
 
       {derived.empty ? (
-        <Card className="mt-8 p-8 text-center">
-          <h2 className="text-2xl font-semibold text-ivory-50">Nothing here yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-ivory-400">Play a blindfold game, run a drill or solve a puzzle — your ratings, streaks and charts will grow from there.</p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <LinkButton href="/play" variant="primary">
-              Play a game
-            </LinkButton>
-            <LinkButton href="/train">Start a drill</LinkButton>
-            <LinkButton href="/puzzles">Solve a puzzle</LinkButton>
-          </div>
-        </Card>
+        <Panel className="mt-10">
+          <EmptyState
+            title="Nothing here yet"
+            text="Play a blindfold game, run a drill or solve a puzzle: your ratings, streaks and charts grow from there."
+            actions={
+              <>
+                <LinkButton href="/play?new=1" variant="primary">
+                  Play a game
+                </LinkButton>
+                <LinkButton href="/train">Start a drill</LinkButton>
+                <LinkButton href="/puzzles">Solve a puzzle</LinkButton>
+              </>
+            }
+          />
+        </Panel>
       ) : null}
 
       {/* KPI row */}
-      <motion.div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6" initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}>
+      <motion.div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6" initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}>
         <StatTile label="Blindfold rating" value={<AnimatedNumber value={ratings.blindfold.rating} />} delta={derived.bDelta} sub={<>peak {ratings.blindfold.peak}</>} />
         <StatTile label="Puzzle rating" value={<AnimatedNumber value={ratings.puzzles.rating} />} delta={derived.pDelta} sub={<>peak {ratings.puzzles.peak}</>} />
-        <StatTile label="Current streak" value={<><AnimatedNumber value={streak.current} /> <span className="text-base font-medium text-ivory-400">{streak.current === 1 ? "day" : "days"}</span></>} sub={<>best {streak.best}</>} />
-        <StatTile label="Training time" value={formatDuration(derived.time)} sub={<>{data.sessions.length} drill sessions</>} />
-        <StatTile label="Games" value={<AnimatedNumber value={totals.played} />} sub={<>{totals.wins}W · {totals.draws}D · {totals.losses}L</>} />
+        <StatTile label="Current streak" value={<><AnimatedNumber value={streak.current} /><span className="ml-1 font-sans text-base font-semibold text-muted">{streak.current === 1 ? "day" : "days"}</span></>} sub={<>best {streak.best}</>} />
+        <StatTile label="Training time" value={formatDuration(derived.time)} sub={<>{plural(data.sessions.length, "drill session")}</>} />
+        <StatTile label="Games" value={<AnimatedNumber value={totals.played} />} sub={<>{totals.wins} won, {totals.draws} drawn, {totals.losses} lost</>} />
         <StatTile
           label="Puzzles solved"
           value={<><AnimatedNumber value={ptotals.attempts ? Math.round((ptotals.solved / ptotals.attempts) * 100) : 0} />%</>}
@@ -226,8 +222,8 @@ export function StatsDashboard() {
       </motion.div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <Card className="p-5">
-          <h2 className="mb-3 text-lg font-semibold text-ivory-50">Ratings over time</h2>
+        <Panel className="p-5 sm:p-6">
+          <h2 className="mb-4 text-title font-semibold text-ink">Ratings over time</h2>
           {derived.bSeries.length || derived.pSeries.length ? (
             <LineChart
               title="Ratings over time"
@@ -239,55 +235,55 @@ export function StatsDashboard() {
           ) : (
             <EmptyChart text="Rated games and puzzles will draw your rating curve here." />
           )}
-        </Card>
-        <Card className="p-5">
-          <h2 className="mb-3 text-lg font-semibold text-ivory-50">Activity</h2>
+        </Panel>
+        <Panel className="p-5 sm:p-6">
+          <h2 className="mb-4 text-title font-semibold text-ink">Activity</h2>
           <Heatmap days={derived.grid} title="Daily activity, last 16 weeks" />
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl bg-night-850/70 p-3 ring-1 ring-inset ring-ivory-100/[0.05]">
-              <div className="text-xs text-ivory-500">Current streak</div>
-              <div className="mt-0.5 font-semibold text-ivory-50">{streak.current} days</div>
+          <div className="mt-4 grid grid-cols-2 gap-3 text-small">
+            <div className="glass-well rounded-control p-3">
+              <div className="text-muted">Current streak</div>
+              <div className="mt-0.5 font-semibold tabular text-ink">{plural(streak.current, "day")}</div>
             </div>
-            <div className="rounded-xl bg-night-850/70 p-3 ring-1 ring-inset ring-ivory-100/[0.05]">
-              <div className="text-xs text-ivory-500">Longest streak</div>
-              <div className="mt-0.5 font-semibold text-ivory-50">{streak.best} days</div>
+            <div className="glass-well rounded-control p-3">
+              <div className="text-muted">Longest streak</div>
+              <div className="mt-0.5 font-semibold tabular text-ink">{plural(streak.best, "day")}</div>
             </div>
           </div>
-        </Card>
+        </Panel>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <Card className="p-5">
-          <h2 className="mb-1 text-lg font-semibold text-ivory-50">Drills</h2>
-          <p className="mb-3 text-sm text-ivory-400">Rating per drill, with accuracy over your last sessions.</p>
+        <Panel className="p-5 sm:p-6">
+          <h2 className="text-title font-semibold text-ink">Drills</h2>
+          <p className="mb-4 mt-1 text-small text-muted">Rating per drill, with accuracy over your last sessions.</p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm" data-testid="drill-table">
+            <table className="w-full min-w-[480px] text-left text-small" data-testid="drill-table">
               <caption className="sr-only">Drill ratings and accuracy</caption>
-              <thead className="text-xs text-ivory-500">
+              <thead className="text-muted">
                 <tr>
-                  <th scope="col" className="py-2 font-medium">Drill</th>
-                  <th scope="col" className="py-2 text-right font-medium">Rating</th>
-                  <th scope="col" className="py-2 text-right font-medium">Sessions</th>
-                  <th scope="col" className="py-2 text-right font-medium">Best</th>
-                  <th scope="col" className="py-2 pl-4 font-medium">Accuracy trend</th>
+                  <th scope="col" className="py-2 font-semibold">Drill</th>
+                  <th scope="col" className="py-2 text-right font-semibold">Rating</th>
+                  <th scope="col" className="py-2 text-right font-semibold">Sessions</th>
+                  <th scope="col" className="py-2 text-right font-semibold">Best</th>
+                  <th scope="col" className="py-2 pl-4 font-semibold">Accuracy trend</th>
                 </tr>
               </thead>
               <tbody>
                 {DRILLS.map((d) => {
-                  const list = data.sessions.filter((s) => s.drill === d.id);
+                  const list = data.sessions.filter((x) => x.drill === d.id);
                   const r = ratings.drills[d.id];
-                  const best = list.length ? Math.max(...list.map((s) => Math.round(s.accuracy * 100))) : null;
+                  const best = list.length ? Math.max(...list.map((x) => Math.round(x.accuracy * 100))) : null;
                   const series = drillAccuracySeries(data.sessions, d.id);
                   return (
-                    <tr key={d.id} className="border-t border-ivory-100/[0.05]">
+                    <tr key={d.id} className="border-t border-line">
                       <td className="py-2.5">
-                        <Link href={`/train/${d.id}`} className="font-medium text-ivory-100 hover:text-ember-200">
+                        <Link href={`/train/${d.id}`} className="font-semibold text-ink underline decoration-transparent underline-offset-4 hover:decoration-ink">
                           {d.title}
                         </Link>
                       </td>
-                      <td className="py-2.5 text-right tabular text-ivory-100">{r ? r.rating : "—"}</td>
-                      <td className="py-2.5 text-right tabular text-ivory-300">{list.length || "—"}</td>
-                      <td className="py-2.5 text-right tabular text-ivory-300">{best !== null ? `${best}%` : "—"}</td>
+                      <td className="py-2.5 text-right tabular text-ink">{r ? r.rating : "None"}</td>
+                      <td className="py-2.5 text-right tabular text-fg">{list.length || "None"}</td>
+                      <td className="py-2.5 text-right tabular text-fg">{best !== null ? `${best}%` : "None"}</td>
                       <td className="py-2.5 pl-4">
                         <Sparkline points={series} label={`${d.title} accuracy over the last ${Math.min(12, series.length)} sessions`} />
                       </td>
@@ -297,10 +293,10 @@ export function StatsDashboard() {
               </tbody>
             </table>
           </div>
-        </Card>
-        <Card className="p-5">
-          <h2 className="mb-1 text-lg font-semibold text-ivory-50">Puzzles by goal</h2>
-          <p className="mb-4 text-sm text-ivory-400">Share solved, by puzzle type.</p>
+        </Panel>
+        <Panel className="p-5 sm:p-6">
+          <h2 className="text-title font-semibold text-ink">Puzzles by goal</h2>
+          <p className="mb-4 mt-1 text-small text-muted">Share solved, by puzzle type.</p>
           {ptotals.attempts ? (
             <BarList
               title="Puzzle solve rate by goal"
@@ -318,32 +314,35 @@ export function StatsDashboard() {
               </LinkButton>
             </EmptyChart>
           )}
-        </Card>
+        </Panel>
       </div>
 
-      <Card className="mt-6 p-5">
-        <h2 className="mb-1 text-lg font-semibold text-ivory-50">Game accuracy</h2>
-        <p className="mb-3 text-sm text-ivory-400">Engine-measured accuracy of your moves in analysed games.</p>
+      <Panel className="mt-6 p-5 sm:p-6">
+        <h2 className="text-title font-semibold text-ink">Game accuracy</h2>
+        <p className="mb-4 mt-1 text-small text-muted">Engine-measured accuracy of your moves in analysed games.</p>
         {derived.accSeries.length ? (
           <LineChart title="Game accuracy over time" yDomain={[0, 100]} yFormat={(v) => `${Math.round(v)}%`} series={[{ id: "acc", label: "Accuracy", color: SERIES_COLORS[0], points: derived.accSeries }]} height={180} />
         ) : (
           <EmptyChart text="Finish a game to see its accuracy here." />
         )}
-      </Card>
+      </Panel>
 
-      <Card className="mt-6 p-5">
-        <h2 className="mb-3 text-lg font-semibold text-ivory-50">Recent games</h2>
+      <Panel className="mt-6 p-5 sm:p-6">
+        <h2 className="mb-4 text-title font-semibold text-ink">Recent games</h2>
         {derived.recent.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm" data-testid="games-table">
+            <table className="w-full min-w-[640px] text-left text-small" data-testid="games-table">
               <caption className="sr-only">Recent games</caption>
-              <thead className="text-xs text-ivory-500">
+              <thead className="text-muted">
                 <tr>
-                  {["When", "Opponent", "Mode", "Visibility", "Result", "Accuracy", "Peeks", "Illegal", ""].map((h) => (
-                    <th key={h} scope="col" className="py-2 font-medium">
+                  {["When", "Opponent", "Mode", "Visibility", "Result", "Accuracy", "Peeks", "Illegal"].map((h) => (
+                    <th key={h} scope="col" className="py-2 font-semibold">
                       {h}
                     </th>
                   ))}
+                  <th scope="col" className="py-2">
+                    <span className="sr-only">Replay</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -351,17 +350,19 @@ export function StatsDashboard() {
                   const r = describeResult(g.result!, g.config.playerColor);
                   const acc = g.analysis ? (g.config.playerColor === "w" ? g.analysis.accuracy.white : g.analysis.accuracy.black) : null;
                   return (
-                    <tr key={g.id} className="border-t border-ivory-100/[0.05]">
-                      <td className="py-2.5 text-ivory-300">{formatRelativeDay(g.startedAt)}</td>
-                      <td className="py-2.5 text-ivory-100">{getLevel(g.config.levelId).name}</td>
-                      <td className="py-2.5 text-ivory-300">{g.config.mode === "rated" ? "Rated" : "Practice"}</td>
-                      <td className="py-2.5 text-ivory-300">{VIS_NAMES[g.config.visibility]}</td>
+                    <tr key={g.id} className="border-t border-line">
+                      <td className="py-2.5 text-fg">{formatRelativeDay(g.startedAt)}</td>
+                      <td className="py-2.5 font-semibold text-ink">{getLevel(g.config.levelId).name}</td>
+                      <td className="py-2.5 text-fg">{g.config.mode === "rated" ? "Rated" : "Practice"}</td>
+                      <td className="py-2.5 text-fg">{VIS_NAMES[g.config.visibility]}</td>
                       <td className="py-2.5">
-                        <span className={cn("font-medium", r.outcome === "win" ? "text-jade-300" : r.outcome === "loss" ? "text-coral-300" : "text-moon-200")}>{r.outcome === "win" ? "Won" : r.outcome === "loss" ? "Lost" : "Draw"}</span>
+                        <span className={cn("font-semibold", r.outcome === "win" ? "text-good" : r.outcome === "loss" ? "text-bad" : "text-ink")}>
+                          {r.outcome === "win" ? "Won" : r.outcome === "loss" ? "Lost" : "Draw"}
+                        </span>
                       </td>
-                      <td className="py-2.5 tabular text-ivory-200">{acc !== null ? `${acc}%` : "—"}</td>
-                      <td className="py-2.5 tabular text-ivory-300">{g.peeksUsed}</td>
-                      <td className="py-2.5 tabular text-ivory-300">{g.illegalAttempts}</td>
+                      <td className="py-2.5 tabular text-ink">{acc !== null ? `${acc}%` : "None"}</td>
+                      <td className="py-2.5 tabular text-fg">{g.peeksUsed}</td>
+                      <td className="py-2.5 tabular text-fg">{g.illegalAttempts}</td>
                       <td className="py-2.5 text-right">
                         <Button size="sm" variant="ghost" onClick={() => setReplay(g)} onPointerEnter={preloadReplay} onFocus={preloadReplay}>
                           Replay
@@ -375,16 +376,20 @@ export function StatsDashboard() {
           </div>
         ) : (
           <EmptyChart text="No finished games yet.">
-            <LinkButton href="/play" size="sm" variant="primary">
+            <LinkButton href="/play?new=1" size="sm" variant="primary">
               Play now
             </LinkButton>
           </EmptyChart>
         )}
-      </Card>
+      </Panel>
 
-      <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Reset all progress?">
-        <p className="text-sm text-ivory-300">This deletes every game, drill session, puzzle attempt and rating stored in this browser. Export first if you want a backup.</p>
-        <div className="mt-5 flex justify-end gap-2">
+      <Modal
+        open={confirmReset}
+        onClose={() => setConfirmReset(false)}
+        title="Reset all progress?"
+        description="This deletes every game, drill session, puzzle attempt and rating stored in this browser. Export first if you want a backup."
+      >
+        <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setConfirmReset(false)} data-autofocus>
             Cancel
           </Button>
@@ -400,9 +405,13 @@ export function StatsDashboard() {
         </div>
       </Modal>
 
-      <Modal open={pendingImport !== null} onClose={() => setPendingImport(null)} title="Import progress">
-        <p className="text-sm text-ivory-300">Merge keeps what you have and adds the file&apos;s records. Replace wipes this browser&apos;s progress first.</p>
-        <div className="mt-5 flex justify-end gap-2">
+      <Modal
+        open={pendingImport !== null}
+        onClose={() => setPendingImport(null)}
+        title="Import progress"
+        description="Merge keeps what you have and adds the file's records. Replace wipes this browser's progress first."
+      >
+        <div className="flex flex-wrap justify-end gap-2">
           <Button variant="ghost" onClick={() => setPendingImport(null)}>
             Cancel
           </Button>

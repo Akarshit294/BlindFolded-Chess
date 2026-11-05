@@ -6,14 +6,15 @@ import { cn } from "@/lib/utils/cn";
 
 export type GridMark = "a" | "b" | "good" | "bad" | "path" | "blocked" | "soft";
 
+/** Ink for the squares in question; green and red only for right and wrong. */
 const MARK: Record<GridMark, string> = {
-  a: "bg-ember-400 text-night-950",
-  b: "bg-moon-400 text-night-950",
-  good: "bg-jade-400/80 text-night-950",
-  bad: "bg-coral-400/80 text-night-950",
-  path: "bg-ember-300/60 text-night-950",
-  blocked: "bg-coral-500/35 text-coral-100",
-  soft: "bg-moon-400/30 text-ivory-50",
+  a: "bg-ink text-on-ink",
+  b: "bg-ink/70 text-on-ink",
+  good: "bg-good text-white",
+  bad: "bg-bad text-white",
+  path: "bg-ink/25 text-ink",
+  blocked: "bg-bad/30 text-bad",
+  soft: "bg-ink/15 text-ink",
 };
 
 /**
@@ -38,7 +39,7 @@ export function MiniGrid({
   className?: string;
 }) {
   return (
-    <div className={cn("relative aspect-square w-full overflow-hidden rounded-xl bg-night-850 ring-1 ring-ivory-100/10", className)}>
+    <div className={cn("glass-well relative aspect-square w-full overflow-hidden rounded-control", className)}>
       {ALL_SQUARES.map((sq) => {
         const { col, row } = squareToGrid(sq, orientation);
         const mark = marks[sq];
@@ -53,8 +54,8 @@ export function MiniGrid({
             aria-hidden={onSquareClick ? undefined : true}
             onClick={onSquareClick ? () => onSquareClick(sq) : undefined}
             className={cn(
-              "absolute flex items-center justify-center border-[0.5px] border-ivory-100/[0.06] outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-moon-300",
-              onSquareClick ? "cursor-pointer hover:bg-ivory-100/[0.06]" : "cursor-default",
+              "absolute flex items-center justify-center border-[0.5px] border-line outline-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-[var(--focus)]",
+              onSquareClick ? "cursor-pointer hover:bg-ink/[0.06]" : "cursor-default",
             )}
             style={{
               left: `${col * 12.5}%`,
@@ -66,7 +67,7 @@ export function MiniGrid({
           >
             {mark ? (
               <motion.span
-                className={cn("absolute inset-[8%] flex items-center justify-center rounded-md font-mono text-[clamp(9px,1.6vw,13px)] font-bold", MARK[mark])}
+                className={cn("absolute inset-[8%] flex items-center justify-center rounded-md text-[clamp(10px,1.6vw,13px)] font-semibold tabular", MARK[mark])}
                 initial={{ scale: 0.3, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 500, damping: 26 }}
@@ -74,8 +75,8 @@ export function MiniGrid({
                 {labels || mark === "a" || mark === "b" ? sq : ""}
               </motion.span>
             ) : null}
-            {coords && edgeRank ? <span className="pointer-events-none absolute left-1 top-0.5 font-mono text-[10px] text-ivory-500">{sq[1]}</span> : null}
-            {coords && edgeFile ? <span className="pointer-events-none absolute bottom-0.5 right-1 font-mono text-[10px] text-ivory-500">{sq[0]}</span> : null}
+            {coords && edgeRank ? <span className="pointer-events-none absolute left-1 top-0.5 text-[11px] font-semibold text-muted">{sq[1]}</span> : null}
+            {coords && edgeFile ? <span className="pointer-events-none absolute bottom-0.5 right-1 text-[11px] font-semibold text-muted">{sq[0]}</span> : null}
           </button>
         );
       })}

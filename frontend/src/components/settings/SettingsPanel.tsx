@@ -1,102 +1,143 @@
 "use client";
-import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Board } from "@/components/board/Board";
-import { PieceGlyph } from "@/components/board/PieceGlyph";
+import { PieceImage } from "@/components/board/PieceImage";
 import { Button } from "@/components/ui/Button";
-import { Card, Segmented, Slider, Toggle } from "@/components/ui/Controls";
-import { IconRefresh, IconVolume } from "@/components/ui/Icons";
+import { FieldLabel, Panel, Segmented, Select, Slider, Toggle } from "@/components/ui/Controls";
+import { PageHeader } from "@/components/ui/Display";
+import { IconMonitor, IconMoon, IconRefresh, IconSun, IconVolume } from "@/components/ui/Icons";
 import { playSound } from "@/lib/audio/sounds";
 import { recognitionSupported } from "@/lib/speech/recognition";
 import { speak, ttsSupported } from "@/lib/speech/tts";
 import { useHydrated, useVoices } from "@/lib/utils/hooks";
-import { BOARD_THEMES, PIECE_SETS, useSettings, type BoardThemeId, type MotionPref, type MoveHints, type PieceSetId } from "@/lib/settings/store";
+import {
+  BOARD_THEMES,
+  PIECE_SETS,
+  resolveTheme,
+  THEMES,
+  useSettings,
+  type BoardThemeId,
+  type MotionPref,
+  type MoveHints,
+  type PieceSetId,
+  type ThemePref,
+} from "@/lib/settings/store";
 import { cn } from "@/lib/utils/cn";
 
 const PREVIEW_FEN = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 3 5";
 
 function Group({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <Card className="p-5 sm:p-6">
-      <h2 className="text-xl font-semibold text-ivory-50">{title}</h2>
-      {description ? <p className="mt-1 text-sm text-ivory-400">{description}</p> : null}
-      <div className="mt-4 divide-y divide-ivory-100/[0.06]">{children}</div>
-    </Card>
+    <Panel as="section" className="p-5 sm:p-6">
+      <h2 className="display text-[1.5rem] leading-none">{title}</h2>
+      {description ? <p className="mt-2 text-small text-muted">{description}</p> : null}
+      <div className="mt-4 divide-y divide-line">{children}</div>
+    </Panel>
   );
 }
 
 function Row({ children }: { children: ReactNode }) {
-  return <div className="py-2">{children}</div>;
+  return <div className="py-3">{children}</div>;
 }
+
+const THEME_ICONS: Record<ThemePref, ReactNode> = {
+  system: <IconMonitor size={16} />,
+  light: <IconSun size={16} />,
+  dark: <IconMoon size={16} />,
+};
 
 export function SettingsPanel() {
   const s = useSettings();
   const hydrated = useHydrated();
   const voices = useVoices();
   const support = { tts: hydrated && ttsSupported(), stt: hydrated && recognitionSupported() };
+  const [melted, setMelted] = useState(false);
+  const uiTheme = hydrated ? resolveTheme(s.theme) : "light";
 
   if (!s.hydrated) {
     return (
-      <div className="mx-auto grid grid-cols-1 max-w-6xl gap-6 px-4 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px]" aria-busy="true">
-        <div className="space-y-6">
-          <div className="skeleton h-12 w-48" />
-          <div className="skeleton h-80" />
-          <div className="skeleton h-56" />
+      <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10" aria-busy="true">
+        <div className="skeleton h-24 w-72 rounded-panel" />
+        <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+          <div className="space-y-6">
+            <div className="skeleton h-80 rounded-panel" />
+            <div className="skeleton h-56 rounded-panel" />
+          </div>
+          <div className="skeleton hidden h-96 rounded-panel lg:block" />
         </div>
-        <div className="skeleton hidden h-96 lg:block" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
-      <div className="rise-in flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">Settings</h1>
-          <p className="mt-2 text-ivory-300">Saved automatically in this browser.</p>
-        </div>
-        <Button variant="ghost" size="sm" icon={<IconRefresh size={15} />} onClick={() => s.reset()} data-testid="reset-settings">
-          Restore defaults
-        </Button>
-      </div>
+    <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
+      <PageHeader
+        thin="Your"
+        bold="settings"
+        lead="Saved automatically in this browser."
+        actions={
+          <Button variant="ghost" size="sm" icon={<IconRefresh size={15} />} onClick={() => s.reset()} data-testid="reset-settings">
+            Restore defaults
+          </Button>
+        }
+      />
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-6">
-          <Group title="Board" description="Themes and pieces apply everywhere — games, drills, puzzles and replays.">
+          <Group title="Appearance" description="The studio in daylight or after dark. System follows your device.">
             <Row>
-              <div className="mb-2 text-sm font-medium text-ivory-100">Theme</div>
-              <div role="radiogroup" aria-label="Board theme" className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+              <Segmented<ThemePref>
+                label="Theme"
+                value={s.theme}
+                onChange={(v) => s.set("theme", v)}
+                testIdPrefix="ui-theme"
+                options={THEMES.map((t) => ({
+                  value: t.id,
+                  label: (
+                    <>
+                      {THEME_ICONS[t.id]}
+                      {t.name}
+                    </>
+                  ),
+                }))}
+              />
+            </Row>
+          </Group>
+
+          <Group title="Board" description="Themes and pieces apply everywhere: games, drills, puzzles and replays.">
+            <Row>
+              <FieldLabel id="board-theme-label">Board theme</FieldLabel>
+              <div role="radiogroup" aria-labelledby="board-theme-label" className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                 {BOARD_THEMES.map((t) => {
                   const active = s.boardTheme === t.id;
+                  const [light, dark] = uiTheme === "dark" ? t.dark : t.light;
                   return (
-                    <motion.button
+                    <button
                       key={t.id}
                       type="button"
                       role="radio"
                       aria-checked={active}
                       data-testid={`theme-${t.id}`}
                       onClick={() => s.set("boardTheme", t.id as BoardThemeId)}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.95 }}
                       className={cn(
-                        "rounded-xl p-1.5 text-left outline-none ring-1 ring-inset focus-visible:ring-2 focus-visible:ring-moon-300",
-                        active ? "bg-ember-400/10 ring-ember-400/70" : "ring-ivory-100/10 hover:ring-ivory-100/25",
+                        "cursor-pointer rounded-control p-1.5 text-left outline-none transition-[background,box-shadow,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus)] active:scale-[0.97]",
+                        active ? "pill-secondary" : "hover:bg-ink/[0.05]",
                       )}
                     >
-                      <span className="grid aspect-square grid-cols-2 overflow-hidden rounded-lg">
-                        {[t.light, t.dark, t.dark, t.light].map((c, i) => (
+                      <span className="grid aspect-square grid-cols-2 overflow-hidden rounded-[0.625rem] shadow-[inset_0_0_0_1px_var(--line)]">
+                        {[light, dark, dark, light].map((c, i) => (
                           <span key={i} style={{ background: c }} />
                         ))}
                       </span>
-                      <span className="mt-1.5 block truncate text-center text-xs text-ivory-300">{t.name}</span>
-                    </motion.button>
+                      <span className={cn("mt-1.5 block truncate text-center text-caption font-semibold", active ? "text-ink" : "text-muted")}>{t.name}</span>
+                    </button>
                   );
                 })}
               </div>
             </Row>
             <Row>
-              <div className="mb-2 text-sm font-medium text-ivory-100">Pieces</div>
-              <div role="radiogroup" aria-label="Piece set" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <FieldLabel id="pieces-label">Pieces</FieldLabel>
+              <div role="radiogroup" aria-labelledby="pieces-label" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {PIECE_SETS.map((p) => {
                   const active = s.pieceSet === p.id;
                   return (
@@ -108,19 +149,19 @@ export function SettingsPanel() {
                       data-testid={`pieces-${p.id}`}
                       onClick={() => s.set("pieceSet", p.id as PieceSetId)}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl p-3 text-left outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
-                        active ? "bg-ember-400/10 ring-ember-400/70" : "ring-ivory-100/10 hover:ring-ivory-100/25",
+                        "flex cursor-pointer flex-col gap-2 rounded-control p-3 text-left outline-none transition-[background,box-shadow,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus)] active:scale-[0.98]",
+                        active ? "pill-secondary" : "hover:bg-ink/[0.05]",
                       )}
                     >
-                      <span className="flex rounded-lg bg-[var(--sq-light)] p-1">
+                      <span className="flex rounded-[0.625rem] p-1" style={{ background: "var(--sq-light)" }}>
                         {(["k", "q", "n"] as const).map((t) => (
-                          <PieceGlyph key={t} set={p.id} color="w" type={t} className="h-8 w-8" />
+                          <PieceImage key={t} set={p.id} color="w" type={t} className="h-9 w-9" />
                         ))}
-                        <PieceGlyph set={p.id} color="b" type="n" className="h-8 w-8" />
+                        <PieceImage set={p.id} color="b" type="n" className="h-9 w-9" />
                       </span>
                       <span>
-                        <span className="block text-sm font-semibold text-ivory-50">{p.name}</span>
-                        <span className="block text-xs text-ivory-400">{p.note}</span>
+                        <span className="block text-small font-semibold text-ink">{p.name}</span>
+                        <span className="block text-caption text-muted">{p.note}</span>
                       </span>
                     </button>
                   );
@@ -143,7 +184,7 @@ export function SettingsPanel() {
               <Slider label="Peek duration" min={1} max={8} step={0.5} value={s.peekSeconds} onChange={(v) => s.set("peekSeconds", v)} format={(v) => `${v}s`} />
             </Row>
             <Row>
-              <div className="mb-2 text-sm font-medium text-ivory-100">Typed-move help in practice games</div>
+              <FieldLabel>Typed-move help in practice games</FieldLabel>
               <Segmented<MoveHints>
                 label="Move hints"
                 value={s.moveHints}
@@ -154,7 +195,7 @@ export function SettingsPanel() {
                   { value: "off", label: "Off" },
                 ]}
               />
-              <p className="mt-2 text-xs text-ivory-400">Rated games always use “Off”, so you can&apos;t probe which moves are legal.</p>
+              <p className="mt-2 text-caption text-muted">Rated games always use Off, so you can&apos;t probe which moves are legal.</p>
             </Row>
             <Row>
               <Toggle checked={s.confirmResign} onChange={(v) => s.set("confirmResign", v)} label="Confirm before resigning" />
@@ -163,7 +204,7 @@ export function SettingsPanel() {
 
           <Group title="Sound">
             <Row>
-              <Toggle checked={s.sound} onChange={(v) => s.set("sound", v)} label="Sound effects" description="Synthesised in your browser — moves, captures, checks, answers." />
+              <Toggle checked={s.sound} onChange={(v) => s.set("sound", v)} label="Sound effects" description="Synthesised in your browser: moves, captures, checks, answers." />
             </Row>
             <Row>
               <div className="flex items-end gap-3">
@@ -179,6 +220,7 @@ export function SettingsPanel() {
                     window.setTimeout(() => playSound("check"), 560);
                   }}
                   disabled={!s.sound}
+                  className="mb-2.5"
                 >
                   Test
                 </Button>
@@ -186,7 +228,7 @@ export function SettingsPanel() {
             </Row>
           </Group>
 
-          <Group title="Voice" description="Hands-free blindfold play using your browser's built-in speech features.">
+          <Group title="Voice" description="Hands-free blindfold play with your browser's built-in speech features.">
             <Row>
               <Toggle
                 checked={s.voiceOutput}
@@ -202,29 +244,22 @@ export function SettingsPanel() {
             {support.tts ? (
               <>
                 <Row>
-                  <label className="block text-sm font-medium text-ivory-100" htmlFor="voice-select">
-                    Voice
-                  </label>
-                  <select
-                    id="voice-select"
-                    value={s.voiceName ?? ""}
-                    onChange={(e) => s.set("voiceName", e.target.value || null)}
-                    className="mt-2 h-10 w-full rounded-xl bg-night-850 px-3 text-sm text-ivory-100 outline-none ring-1 ring-inset ring-ivory-100/10 focus:ring-moon-400/50"
-                  >
+                  <FieldLabel htmlFor="voice-select">Voice</FieldLabel>
+                  <Select id="voice-select" value={s.voiceName ?? ""} onChange={(e) => s.set("voiceName", e.target.value || null)}>
                     <option value="">System default</option>
                     {voices.map((v) => (
                       <option key={v.name} value={v.name}>
                         {v.name} ({v.lang})
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </Row>
                 <Row>
                   <div className="flex items-end gap-3">
                     <div className="flex-1">
                       <Slider label="Speaking rate" min={0.6} max={1.6} step={0.05} value={s.speechRate} onChange={(v) => s.set("speechRate", v)} format={(v) => `${v.toFixed(2)}×`} />
                     </div>
-                    <Button size="sm" icon={<IconVolume size={15} />} onClick={() => void speak("Knight takes e5, check", { force: true })}>
+                    <Button size="sm" icon={<IconVolume size={15} />} onClick={() => void speak("Knight takes e5, check", { force: true })} className="mb-2.5">
                       Hear it
                     </Button>
                   </div>
@@ -253,16 +288,29 @@ export function SettingsPanel() {
                   { value: "reduced", label: "Reduced" },
                 ]}
               />
-              <p className="mt-2 text-xs text-ivory-400">Reduced turns off piece flights, fog, confetti and page transitions. “Follow system” respects your OS setting.</p>
+              <p className="mt-2 text-caption text-muted">Reduced turns off piece flights, the melting board, parallax, confetti and page transitions. Follow system respects your device setting.</p>
             </Row>
           </Group>
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start" aria-label="Preview">
-          <Card className="p-4">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-ivory-500">Preview</div>
-            <Board fen={PREVIEW_FEN} interactive={false} lastMove={{ from: "f1", to: "c4" }} arrows={[{ from: "f3", to: "g5", color: "moon" }]} ariaLabel="Board preview" />
-          </Card>
+        <aside className="lg:sticky lg:top-28 lg:self-start" aria-label="Preview">
+          <Panel className="p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-small font-semibold text-ink">Preview</h2>
+              <Button size="sm" variant={melted ? "primary" : "secondary"} onClick={() => setMelted((m) => !m)} aria-pressed={melted}>
+                {melted ? "Solidify" : "Melt it"}
+              </Button>
+            </div>
+            <Board
+              fen={PREVIEW_FEN}
+              interactive={false}
+              lastMove={{ from: "f1", to: "c4" }}
+              arrows={[{ from: "f3", to: "g5", color: "soft" }]}
+              visibility={melted ? "ghost" : "full"}
+              ghostDelayMs={200}
+              ariaLabel="Board preview"
+            />
+          </Panel>
         </aside>
       </div>
     </div>

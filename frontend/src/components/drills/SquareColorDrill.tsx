@@ -7,7 +7,7 @@ import { MiniGrid } from "./MiniGrid";
 import { ChoiceButtons, Prompt, Sq } from "./shared";
 
 function Swatch({ shade }: { shade: "light" | "dark" }) {
-  return <span className="h-7 w-7 rounded-md ring-1 ring-inset ring-ivory-50/20" style={{ background: shade === "light" ? "var(--sq-light)" : "var(--sq-dark)" }} />;
+  return <span className="h-7 w-7 rounded-md shadow-[inset_0_0_0_1px_var(--line-strong)]" style={{ background: shade === "light" ? "var(--sq-light)" : "var(--sq-dark)" }} />;
 }
 
 function Question({ q, level, locked, onAnswer }: QuestionProps<SquareColorQ>) {

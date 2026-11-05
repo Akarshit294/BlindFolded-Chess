@@ -1,50 +1,43 @@
-"use client";
-import { motion } from "motion/react";
+import { PageHeader } from "@/components/ui/Display";
 import { ASSET_CREDITS, SOFTWARE_CREDITS, type Credit } from "@/data/credits";
 
 function List({ items }: { items: Credit[] }) {
   return (
-    <motion.ul
-      className="divide-y divide-ivory-100/[0.06] overflow-hidden rounded-2xl ring-1 ring-inset ring-ivory-100/[0.07]"
-      initial="hidden"
-      animate="show"
-      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.035 } } }}
-    >
+    <ul className="glass-panel divide-y divide-line overflow-hidden rounded-panel">
       {items.map((c) => (
-        <motion.li
-          key={c.name}
-          variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
-          className="grid grid-cols-1 gap-1 bg-night-850/50 px-4 py-3 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)_auto] sm:items-center sm:gap-4"
-        >
-          <a href={c.url} target="_blank" rel="noreferrer noopener" className="font-medium text-ivory-50 underline-offset-4 hover:text-ember-200 hover:underline">
+        <li key={c.name} className="grid grid-cols-1 gap-1 px-5 py-4 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)_auto] sm:items-center sm:gap-5">
+          <a href={c.url} target="_blank" rel="noreferrer noopener" className="font-semibold text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
             {c.name}
           </a>
-          <span className="text-sm text-ivory-400">
+          <span className="text-small text-fg">
             {c.what}
-            {c.author ? <span className="text-ivory-500"> — {c.author}</span> : null}
+            {c.author ? <span className="text-muted">, {c.author}</span> : null}
           </span>
-          <span className="w-fit rounded-full bg-ivory-100/[0.05] px-2.5 py-0.5 font-mono text-[11px] text-ivory-300 ring-1 ring-inset ring-ivory-100/10">{c.license}</span>
-        </motion.li>
+          <span className="glass-well w-fit rounded-full px-3 py-0.5 text-caption font-semibold text-ink">{c.license}</span>
+        </li>
       ))}
-    </motion.ul>
+    </ul>
   );
 }
 
 export function CreditsList() {
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 pb-10 pt-8 sm:px-6">
-      <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">Credits</h1>
-      <p className="mt-3 max-w-2xl text-ivory-300">
-        Blindfold is free software under the <a className="text-ember-200 underline-offset-4 hover:underline" href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3</a> (because it
-        ships Stockfish). It stands on the shoulders of these projects. The original “Lumen” piece set, the icons, the sounds (synthesised live) and the design
-        were made for this project.
-      </p>
-      <h2 className="mb-3 mt-10 text-xl font-semibold text-ivory-50">Engine, data and assets</h2>
+    <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
+      <PageHeader
+        thin="Open"
+        bold="credits"
+        lead="Blindfold Chess is free software under the GNU GPL v3, because it ships Stockfish. It stands on the shoulders of these projects. The 3D pieces, the melting board, the Lumen piece set, the icons, the sounds (synthesised live) and the design were made for this project."
+      />
+      <h2 className="mb-4 mt-12 text-title font-semibold text-ink">Engine, data and assets</h2>
       <List items={ASSET_CREDITS} />
-      <h2 className="mb-3 mt-10 text-xl font-semibold text-ivory-50">Software</h2>
+      <h2 className="mb-4 mt-10 text-title font-semibold text-ink">Software</h2>
       <List items={SOFTWARE_CREDITS} />
-      <p className="mt-8 text-sm text-ivory-500">
-        Not affiliated with lichess.org, chess.com or the Stockfish project. The full list, with versions, is in CREDITS.md in the source repository.
+      <p className="mt-8 text-small text-muted">
+        Not affiliated with lichess.org, chess.com or the Stockfish project. The full list, with versions, is in CREDITS.md in the{" "}
+        <a className="font-semibold text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink" href="https://www.gnu.org/licenses/gpl-3.0.html">
+          GPL-3.0
+        </a>{" "}
+        source repository.
       </p>
     </div>
   );
