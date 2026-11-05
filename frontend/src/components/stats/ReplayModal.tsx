@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
-import { ReplayViewer } from "@/components/game/ReplayViewer";
+import { ReplayViewer } from "@/components/game/replay";
 import { Modal } from "@/components/ui/Modal";
 import { analyzeGame, type GameAnalysis } from "@/lib/analysis/analyze";
 import { getLevel } from "@/lib/engine/levels";

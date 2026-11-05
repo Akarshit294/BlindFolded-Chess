@@ -33,11 +33,13 @@ import {
 import { ALL_SQUARES, gridToSquare, squareShade, squareToGrid, type Orientation } from "@/lib/chess/squares";
 import { announce } from "@/lib/a11y/announcer";
 import { pieceLabel } from "@/lib/chess/notation";
-import { useSettings } from "@/lib/settings/store";
+import { useSettings, type PieceSetId } from "@/lib/settings/store";
 import { cn } from "@/lib/utils/cn";
+import { useE2E } from "@/lib/utils/e2e";
 import { Arrows, type BoardArrow } from "./Arrows";
 import { Fog } from "./Fog";
-import { PieceGlyph } from "./PieceGlyph";
+import { MeltSurface } from "./MeltSurface";
+import { PieceImage, TokenImage } from "./PieceImage";
 import { PromotionPicker } from "./PromotionPicker";
 import { Shatter } from "./Shatter";
 import { trackPieces, type MoveHint, type Placement, type TrackedPiece } from "./tracking";
@@ -80,6 +82,8 @@ export type BoardProps = {
   ghostDelayMs?: number;
   speed?: "normal" | "slow";
   fog?: number;
+  /** Override how melted the board looks (0..1); by default it follows the visibility. */
+  melt?: number;
   className?: string;
   ariaLabel?: string;
   /** Called with the square under the keyboard cursor (for screen-reader announcements). */
@@ -119,7 +123,7 @@ function placementsFromFen(fen: string): Placement[] {
 type PieceViewProps = {
   piece: TrackedPiece;
   orientation: Orientation;
-  set: string;
+  set: PieceSetId;
   visible: boolean;
   silhouette: boolean;
   dragging: boolean;
@@ -196,6 +200,7 @@ const PieceView = memo(function PieceView({
     };
   }, [col, row, piece.id, x, y, ox, oy, takeDrop, delay, slow, reduced]);
 
+  const fade = { duration: visible ? 0.28 : 0.9, delay: visible ? 0 : fadeDelay, ease: [0.16, 1, 0.3, 1] as const };
   return (
     <motion.div
       className="pointer-events-none absolute left-0 top-0 h-[12.5%] w-[12.5%]"
@@ -205,35 +210,33 @@ const PieceView = memo(function PieceView({
       aria-hidden="true"
     >
       <motion.div className="relative h-full w-full" style={{ x: dragging ? dragX : ox, y: dragging ? dragY : oy }}>
-        {/* Lift shadow: opacity only. */}
+        {/* Contact shadow: stays on the board when the piece is lifted, and softens. */}
         <motion.div
-          className="absolute inset-x-[16%] bottom-[2%] h-[22%] rounded-[50%] bg-black/45 blur-[6px]"
+          className="absolute inset-x-[19%] bottom-[5%] h-[15%] rounded-[50%] bg-black blur-[3px]"
           initial={false}
-          animate={{ opacity: dragging ? 1 : 0, scale: dragging ? 1.15 : 0.8 }}
-          transition={{ duration: 0.18 }}
+          animate={{ opacity: visible && !silhouette ? (dragging ? 0.28 : 0.34) : 0, scale: dragging ? 1.3 : 1 }}
+          transition={{ opacity: fade, scale: { type: "spring", stiffness: 500, damping: 30 } }}
         />
         <motion.div
           className="relative h-full w-full"
           initial={hidden ? { opacity: 0 } : false}
           animate={{
             opacity: visible ? 1 : 0,
-            scale: dragging ? 1.14 : visible ? 1 : 0.94,
-            y: dragging ? "-8%" : visible ? "0%" : "-6%",
+            scale: dragging ? 1.12 : visible ? 1 : 0.94,
+            y: dragging ? "-12%" : visible ? "0%" : "7%",
             rotate: toppled ? (piece.color === "w" ? 82 : -82) : 0,
+            filter: visible ? "blur(0px)" : "blur(3px)",
           }}
           transition={{
-            opacity: { duration: visible ? 0.28 : 0.9, delay: visible ? 0 : fadeDelay, ease: [0.16, 1, 0.3, 1] },
+            opacity: fade,
+            filter: fade,
             scale: { type: "spring", stiffness: 600, damping: 30 },
             y: { duration: visible ? 0.25 : 0.9, delay: visible ? 0 : fadeDelay },
             rotate: { type: "spring", stiffness: 60, damping: 9, delay: 0.5 },
           }}
-          style={{ transformOrigin: toppled ? "50% 86%" : "50% 50%", willChange: "transform, opacity" }}
+          style={{ transformOrigin: toppled ? "50% 86%" : "50% 60%", willChange: "transform, opacity" }}
         >
-          {silhouette ? (
-            <div className="absolute inset-[24%] rounded-full bg-[radial-gradient(circle_at_35%_30%,rgba(235,238,255,0.95),rgba(156,167,240,0.65)_60%,rgba(93,102,192,0.35))] shadow-[0_0_18px_rgba(156,167,240,0.45)]" />
-          ) : (
-            <PieceGlyph set={set} color={piece.color} type={piece.type} className="h-full w-full" />
-          )}
+          {silhouette ? <TokenImage set={set} className="h-full w-full" /> : <PieceImage set={set} color={piece.color} type={piece.type} className="h-full w-full" />}
         </motion.div>
       </motion.div>
     </motion.div>
@@ -263,6 +266,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
     ghostDelayMs = 3000,
     speed = "normal",
     fog,
+    melt: meltProp,
     className,
     ariaLabel = "Chessboard",
     onCursor,
@@ -274,6 +278,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
   const motionPref = useSettings((s) => s.motion);
   const systemReduced = useReducedMotion();
   const reduced = motionPref === "reduced" || (motionPref === "system" && !!systemReduced);
+  const e2e = useE2E();
 
   const boardRef = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState<{ fen: string; sq: Square } | null>(null);
@@ -352,7 +357,15 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
   const silhouette = !reveal && visibility === "silhouette";
   const piecesHidden = !piecesVisible;
   const canDrag = interactive && !onSquareClick && (reveal || visibility === "full" || (visibility === "ghost" && ghostShown));
-  const fogDensity = fog ?? (reveal || visibility === "full" ? 0 : visibility === "ghost" ? (ghostShown ? 0 : 0.5) : visibility === "silhouette" ? 0.3 : 0.55);
+  const fogDensity = fog ?? (reveal || visibility === "full" ? 0 : visibility === "ghost" ? (ghostShown ? 0 : 0.3) : visibility === "silhouette" ? 0.12 : 0.22);
+  // The board melts while the pieces are hidden (less where coordinates or tokens must stay readable).
+  const meltAmount =
+    meltProp ?? (reveal || visibility === "full" ? 0 : visibility === "ghost" ? (ghostShown ? 0 : 1) : visibility === "empty" ? 0.6 : 0.42);
+  // A ripple runs out from the last move whenever the board melts or a hidden move lands.
+  const rippleOrigin = lastMove ? squareToGrid(lastMove.to, orientation) : { col: 3.5, row: 3.5 };
+  const rippleKey = meltAmount > 0 ? `${fen}|${ghostShown ? "shown" : "hidden"}` : "";
+  const [ripple, setRipple] = useState<{ key: string; id: number } | null>(null);
+  if (rippleKey && ripple?.key !== rippleKey && !(visibility === "ghost" && ghostShown)) setRipple({ key: rippleKey, id: (ripple?.id ?? 0) + 1 });
 
   /* ---------- effects API ---------- */
   const doShake = useCallback(() => {
@@ -608,11 +621,13 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
         onKeyDown={onKeyDown}
         onBlur={() => setKeyboardActive(false)}
         className={cn(
-          "relative h-full w-full overflow-hidden rounded-[10px] shadow-[0_30px_60px_-30px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] outline-none",
+          "relative h-full w-full overflow-hidden rounded-[0.875rem] outline-none",
+          "shadow-[0_0_0_1px_var(--board-edge),0_2px_3px_rgb(0_0_0/0.08),0_34px_60px_-32px_rgb(0_0_0/0.5)]",
+          "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]",
           "touch-none",
           (interactive || onSquareClick) && "cursor-pointer",
         )}
-        style={{ background: "var(--board-frame)" }}
+        style={{ background: "var(--sq-light)" }}
       >
         {/* Squares */}
         <div
@@ -624,11 +639,19 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board(
             backgroundSize: "25% 25%",
           }}
         />
+        {/* The melt: the squares turn to liquid while the pieces are hidden. */}
+        <MeltSurface
+          melt={meltAmount}
+          still={reduced || e2e.fast}
+          ripple={ripple ? { x: (rippleOrigin.col + 0.5) / 8, y: (rippleOrigin.row + 0.5) / 8, id: ripple.id } : null}
+        />
+        {/* A glossy sheen, like the hero board. */}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(155deg,var(--board-sheen),transparent_38%,transparent_70%,rgb(0_0_0/0.05))]" />
 
         {/* Highlights */}
         <div className="pointer-events-none absolute inset-0">
           {showLastMove && lastMove
-            ? [lastMove.from, lastMove.to].map((sq) => <SquareTint key={`lm-${sq}`} square={sq} orientation={orientation} color="var(--hl-last)" />)
+            ? [lastMove.from, lastMove.to].map((sq) => <SquareTint key={`lm-${sq}`} square={sq} orientation={orientation} color="var(--hl-fill)" ring />)
             : null}
           {marks
             ? (Object.entries(marks) as Array<[Square, SquareMark]>).map(([sq, kind]) => (
@@ -729,11 +752,11 @@ function squareStyle(sq: Square, orientation: Orientation) {
   return { left: `${col * 12.5}%`, top: `${row * 12.5}%`, width: "12.5%", height: "12.5%" } as const;
 }
 
-function SquareTint({ square, orientation, color }: { square: Square; orientation: Orientation; color: string }) {
+function SquareTint({ square, orientation, color, ring }: { square: Square; orientation: Orientation; color: string; ring?: boolean }) {
   return (
     <motion.div
       className="absolute"
-      style={{ ...squareStyle(square, orientation), background: color }}
+      style={{ ...squareStyle(square, orientation), background: color, boxShadow: ring ? "inset 0 0 0 2px var(--hl-ring)" : undefined }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
@@ -741,19 +764,22 @@ function SquareTint({ square, orientation, color }: { square: Square; orientatio
   );
 }
 
+/** Drill marks: color only where it means right or wrong; everything else is ink. */
 const MARK_STYLES: Record<SquareMark, string> = {
-  good: "bg-jade-400/55",
-  bad: "bg-coral-400/55",
-  focus: "bg-ember-400/70 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.65)]",
-  target: "bg-moon-400/55",
-  path: "bg-ember-300/45",
-  dim: "bg-night-950/45",
+  good: "bg-good/55",
+  bad: "bg-bad/55",
+  focus: "bg-ink/25 shadow-[inset_0_0_0_3px_var(--ink)]",
+  target: "shadow-[inset_0_0_0_3px_var(--ink)]",
+  path: "bg-ink/22",
+  dim: "bg-black/35",
 };
 
 function MarkTint({ square, orientation, kind }: { square: Square; orientation: Orientation; kind: SquareMark }) {
   return (
     <motion.div
       className={cn("absolute", MARK_STYLES[kind])}
+      data-mark={kind}
+      data-square={square}
       style={squareStyle(square, orientation)}
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -765,7 +791,7 @@ function MarkTint({ square, orientation, kind }: { square: Square; orientation: 
 function SquareRing({ square, orientation, strong }: { square: Square; orientation: Orientation; strong?: boolean }) {
   return (
     <div className="absolute p-[2px]" style={squareStyle(square, orientation)}>
-      <div className={cn("h-full w-full rounded-[4px]", strong ? "ring-[3px] ring-moon-200" : "ring-[3px] ring-ivory-50/70")} />
+      <div className={cn("h-full w-full rounded-[5px]", strong ? "shadow-[inset_0_0_0_3px_var(--ink),0_0_0_2px_var(--studio-hi)]" : "shadow-[inset_0_0_0_3px_rgb(255_255_255/0.85)]")} />
     </div>
   );
 }
@@ -780,9 +806,9 @@ function HintDot({ square, orientation, capture }: { square: Square; orientation
       transition={{ type: "spring", stiffness: 600, damping: 28 }}
     >
       {capture ? (
-        <div className="h-[92%] w-[92%] rounded-full ring-[5px] ring-[var(--hl-target)]" />
+        <div className="h-[90%] w-[90%] rounded-full shadow-[inset_0_0_0_5px_var(--hl-target)]" />
       ) : (
-        <div className="h-[30%] w-[30%] rounded-full" style={{ background: "var(--hl-target)" }} />
+        <div className="h-[28%] w-[28%] rounded-full" style={{ background: "var(--hl-target)" }} />
       )}
     </motion.div>
   );
@@ -795,8 +821,8 @@ function CheckGlow({ square, orientation, mated }: { square: Square; orientation
         className={cn("absolute -inset-[30%] rounded-full", mated ? "" : "animate-glow-pulse")}
         style={{
           background: mated
-            ? "radial-gradient(closest-side, rgba(240,70,55,0.95), rgba(200,40,30,0.55) 45%, rgba(200,40,30,0) 75%)"
-            : "radial-gradient(closest-side, rgba(255,110,90,0.9), rgba(255,80,60,0.45) 45%, rgba(255,80,60,0) 75%)",
+            ? "radial-gradient(closest-side, color-mix(in oklab, var(--bad) 92%, transparent), color-mix(in oklab, var(--bad) 50%, transparent) 45%, transparent 75%)"
+            : "radial-gradient(closest-side, color-mix(in oklab, var(--bad) 80%, transparent), color-mix(in oklab, var(--bad) 38%, transparent) 45%, transparent 75%)",
         }}
       />
     </div>
@@ -812,7 +838,7 @@ function Coordinates({ orientation, mode }: { orientation: Orientation; mode: "e
           return (
             <div key={sq} className="absolute flex items-center justify-center" style={squareStyle(sq, orientation)}>
               <span
-                className="font-mono text-[clamp(9px,1.6vw,13px)] font-medium"
+                className="text-[clamp(10px,1.5vw,13px)] font-semibold tabular"
                 style={{ color: dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)" }}
               >
                 {sq}
@@ -826,15 +852,15 @@ function Coordinates({ orientation, mode }: { orientation: Orientation; mode: "e
   const files = orientation === "white" ? "abcdefgh" : "hgfedcba";
   const ranks = orientation === "white" ? "87654321" : "12345678";
   return (
-    <div className="pointer-events-none absolute inset-0 font-mono text-[clamp(8px,1.5vw,12px)] font-semibold" aria-hidden="true">
+    <div className="pointer-events-none absolute inset-0 text-[clamp(9px,1.35vw,12px)] font-semibold leading-none" aria-hidden="true">
       {ranks.split("").map((r, i) => {
         const sq = `${files[0]}${r}` as Square;
         const dark = squareShade(sq) === "dark";
         return (
           <span
             key={`r${r}`}
-            className="absolute left-[0.35%] leading-none"
-            style={{ top: `calc(${i * 12.5}% + 0.45%)`, color: dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)" }}
+            className="absolute left-[0.7%] leading-none"
+            style={{ top: `calc(${i * 12.5}% + 0.7%)`, color: dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)" }}
           >
             {r}
           </span>
@@ -846,8 +872,8 @@ function Coordinates({ orientation, mode }: { orientation: Orientation; mode: "e
         return (
           <span
             key={`f${f}`}
-            className="absolute bottom-[0.3%] leading-none"
-            style={{ left: `calc(${(i + 1) * 12.5}% - 1.6%)`, color: dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)" }}
+            className="absolute bottom-[0.7%] leading-none"
+            style={{ left: `calc(${(i + 1) * 12.5}% - 1.9%)`, color: dark ? "var(--sq-coord-dark)" : "var(--sq-coord-light)" }}
           >
             {f}
           </span>
@@ -868,8 +894,8 @@ function GhostTrail({ from, to, orientation, onDone }: { from: Square; to: Squar
     <svg viewBox="0 0 8 8" className="absolute inset-0 h-full w-full overflow-visible">
       <defs>
         <linearGradient id={`trail-${from}-${to}`} x1={x1} y1={y1} x2={x2} y2={y2} gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="rgba(191,199,251,0)" />
-          <stop offset="1" stopColor="rgba(220,225,255,0.95)" />
+          <stop offset="0" stopColor="var(--ink)" stopOpacity="0" />
+          <stop offset="1" stopColor="var(--ink)" stopOpacity="0.55" />
         </linearGradient>
       </defs>
       <motion.line
@@ -889,9 +915,9 @@ function GhostTrail({ from, to, orientation, onDone }: { from: Square; to: Squar
         cx={x2}
         cy={y2}
         r={0.36}
-        fill="rgba(220,225,255,0.35)"
+        fill="var(--ink)"
         initial={{ opacity: 0, scale: 0.3 }}
-        animate={{ opacity: [0, 0.7, 0], scale: [0.3, 1.1, 1.35] }}
+        animate={{ opacity: [0, 0.18, 0], scale: [0.3, 1.1, 1.35] }}
         transition={{ duration: 1.2, delay: 0.25 }}
         style={{ transformOrigin: `${x2}px ${y2}px`, transformBox: "fill-box" }}
       />
@@ -902,10 +928,10 @@ function GhostTrail({ from, to, orientation, onDone }: { from: Square; to: Squar
 function Flash({ square, orientation, onDone }: { square: Square; orientation: Orientation; onDone: () => void }) {
   return (
     <motion.div
-      className="absolute bg-ember-300/80"
+      className="absolute bg-ink/30 shadow-[inset_0_0_0_3px_var(--ink)]"
       style={squareStyle(square, orientation)}
       initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 0.9, 0.9, 0] }}
+      animate={{ opacity: [0, 1, 1, 0] }}
       transition={{ duration: 1.6, times: [0, 0.12, 0.5, 1] }}
       onAnimationComplete={onDone}
     />
@@ -919,7 +945,7 @@ function FadeOut({
   visible,
   onDone,
 }: {
-  set: string;
+  set: PieceSetId;
   color: Color;
   type: PieceSymbol;
   visible: boolean;
@@ -933,7 +959,7 @@ function FadeOut({
       transition={{ duration: 0.35 }}
       onAnimationComplete={onDone}
     >
-      <PieceGlyph set={set} color={color} type={type} className="h-full w-full" />
+      <PieceImage set={set} color={color} type={type} className="h-full w-full" />
     </motion.div>
   );
 }

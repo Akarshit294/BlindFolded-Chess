@@ -4,7 +4,8 @@ import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { PIECE_NAMES } from "@/lib/chess/notation";
 import { squareToGrid, type Orientation } from "@/lib/chess/squares";
-import { PieceGlyph } from "./PieceGlyph";
+import type { PieceSetId } from "@/lib/settings/store";
+import { PieceImage } from "./PieceImage";
 
 const CHOICES: PieceSymbol[] = ["q", "n", "r", "b"];
 
@@ -12,7 +13,7 @@ type Props = {
   square: Square;
   color: Color;
   orientation: Orientation;
-  set: string;
+  set: PieceSetId;
   onPick: (p: PieceSymbol) => void;
   onCancel: () => void;
 };
@@ -44,7 +45,7 @@ export function PromotionPicker({ square, color, orientation, set, onPick, onCan
   return (
     <div className="absolute inset-0 z-40" onPointerDown={(e) => e.target === e.currentTarget && onCancel()}>
       <motion.div
-        className="absolute inset-0 bg-night-950/55"
+        className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-[2px]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
@@ -69,14 +70,14 @@ export function PromotionPicker({ square, color, orientation, set, onPick, onCan
             type="button"
             aria-label={`Promote to ${PIECE_NAMES[p]}`}
             onClick={() => onPick(p)}
-            className="group relative h-1/4 w-full rounded-full bg-ivory-50/90 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.6)] ring-1 ring-night-900/20 outline-none focus-visible:ring-4 focus-visible:ring-moon-400"
+            className="pill-secondary group relative h-1/4 w-full cursor-pointer rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             initial={{ opacity: 0, scale: 0.4, y: downward ? -20 * i : 20 * i }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.92 }}
             transition={{ type: "spring", stiffness: 520, damping: 30, delay: i * 0.04 }}
           >
-            <PieceGlyph set={set} color={color} type={p} className="h-full w-full p-[6%] transition-transform group-hover:-translate-y-0.5" />
+            <PieceImage set={set} color={color} type={p} className="h-full w-full p-[6%] transition-transform group-hover:-translate-y-0.5" />
           </motion.button>
         ))}
       </div>

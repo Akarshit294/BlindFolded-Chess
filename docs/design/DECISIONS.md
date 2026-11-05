@@ -74,3 +74,19 @@ to each section. The older product and engineering decisions from the first buil
   soft edges and a fake specular sheen) behind the DOM pieces: a few kilobytes, no scene graph, and it stops
   rendering whenever the board is solid. Without WebGL, or with reduced motion, it falls back to a still,
   softened board.
+- **The stage is translucent, not backdrop-filtered.** A `backdrop-filter` on the page-sized stage rendered in
+  visible tiles (seams every few hundred pixels) in headless Chrome's software compositor, and it costs a
+  full-page blur on every scroll frame on phones. Everything behind the stage is the studio backdrop, whose pieces
+  are already rendered out of focus with real depth of field, so a translucent white fill gives the same frosted
+  look. Real backdrop blur is kept where content scrolls underneath: the floating header, the phone dock, the move
+  bar, toasts and dialogs.
+- **CSS Modules are not used.** The project's Turbopack rule sends every `*.css` file through the Tailwind loader as
+  plain CSS, so module class names are not hashed. Page-specific styles live in `globals.css` under prefixed class
+  names (`hv-`, `mb-`, `demo-`).
+- **Board pieces have no baked shadow.** Sprites are rendered without a contact shadow; the board draws a soft
+  CSS shadow under each piece, so a dragged piece lifts off its shadow, which stays on the board and softens.
+- **Hidden boards melt in place.** Ghost (when the pieces fade), silhouette and empty-board modes redraw the
+  squares with the WebGL melt at different strengths (silhouette and empty boards melt less, so tokens and
+  coordinates stay readable), and a ripple runs out from the last move. A peek solidifies the board in about a
+  quarter of a second. In end-to-end tests (`?e2e=1`) the melt draws a still frame to keep software rendering
+  cheap.

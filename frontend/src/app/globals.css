@@ -37,7 +37,7 @@
   --surface: #ffffff;
   --surface-2: #f5f5f5;
   --sunken: rgb(0 0 0 / 0.04);
-  --glass: rgb(255 255 255 / 0.36);
+  --glass: rgb(255 255 255 / 0.42);
   --glass-raised: rgb(255 255 255 / 0.6);
   --glass-strong: rgb(250 250 250 / 0.84);
   --glass-edge: rgb(255 255 255 / 0.85);
@@ -474,11 +474,15 @@
     .bd-5 { display: none; }
   }
 
-  /* The one big frosted stage every page sits on. */
+  /*
+   * The one big glass stage every page sits on. Everything behind it is the studio backdrop, whose pieces are
+   * already rendered out of focus, so the stage is a translucent fill rather than a page-sized backdrop-filter
+   * (which tiles visibly in software compositing and costs a full-page blur per frame on phones). Floating glass
+   * that content scrolls under keeps a real backdrop blur (.glass-float).
+   */
   .glass-stage {
-    background: linear-gradient(180deg, color-mix(in oklab, var(--glass) 100%, white 6%), var(--glass) 40%);
-    -webkit-backdrop-filter: blur(var(--blur-stage)) saturate(140%);
-    backdrop-filter: blur(var(--blur-stage)) saturate(140%);
+    /* A flat fill: a gradient over a page-tall box was rasterized per tile and showed bands. */
+    background: var(--glass);
     border: 1px solid var(--glass-edge);
     box-shadow: var(--sh-stage);
   }

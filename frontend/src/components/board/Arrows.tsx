@@ -3,14 +3,15 @@ import type { Square } from "chess.js";
 import { AnimatePresence, motion } from "motion/react";
 import { squareToGrid, type Orientation } from "@/lib/chess/squares";
 
-export type ArrowColor = "ember" | "moon" | "jade" | "coral";
+/** Ink for plain arrows; green and red only where they mean "best" and "wrong". */
+export type ArrowColor = "ink" | "soft" | "good" | "bad";
 export type BoardArrow = { from: Square; to: Square; color?: ArrowColor };
 
 const COLORS: Record<ArrowColor, string> = {
-  ember: "rgba(245,176,78,0.88)",
-  moon: "rgba(156,167,240,0.9)",
-  jade: "rgba(87,217,163,0.88)",
-  coral: "rgba(255,125,107,0.88)",
+  ink: "color-mix(in oklab, var(--ink) 82%, transparent)",
+  soft: "color-mix(in oklab, var(--ink) 45%, transparent)",
+  good: "color-mix(in oklab, var(--good) 88%, transparent)",
+  bad: "color-mix(in oklab, var(--bad) 88%, transparent)",
 };
 
 function center(sq: Square, o: Orientation) {
@@ -52,7 +53,7 @@ export function Arrows({ arrows, orientation }: { arrows: BoardArrow[]; orientat
       </defs>
       <AnimatePresence>
         {arrows.map((a) => {
-          const color = a.color ?? "ember";
+          const color = a.color ?? "ink";
           return (
             <motion.path
               key={`${a.from}-${a.to}-${color}`}

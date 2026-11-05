@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { Portal } from "@/components/ui/Portal";
 import { useSettings } from "@/lib/settings/store";
 
 type Particle = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; w: number; h: number; color: string; life: number };
 
-const COLORS = ["#fbca78", "#f5b04e", "#fde0a8", "#bfc7fb", "#9ca7f0", "#57d9a3", "#fbf8f2"];
+// Monochrome paper: lacquer black, porcelain white and two grays.
+const COLORS = ["#111111", "#2b2b2b", "#f6f6f6", "#ffffff", "#9a9a9a", "#c8c8c8"];
 
 /** Lightweight canvas confetti (~140 particles, one rAF loop, auto-stops). */
 export function Confetti({ fire }: { fire: number }) {
@@ -86,5 +88,10 @@ export function Confetti({ fire }: { fire: number }) {
     };
   }, [fire, motionPref]);
 
-  return <canvas ref={canvas} aria-hidden="true" className="pointer-events-none fixed inset-0 z-[90] h-full w-full" />;
+  // In a portal: inside the glass stage (backdrop-filter), "fixed" would not mean the viewport.
+  return (
+    <Portal>
+      <canvas ref={canvas} aria-hidden="true" className="pointer-events-none fixed inset-0 z-[90] h-full w-full" />
+    </Portal>
+  );
 }

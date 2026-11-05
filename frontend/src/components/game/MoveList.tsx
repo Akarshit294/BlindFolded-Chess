@@ -17,6 +17,8 @@ type Props = {
   className?: string;
 };
 
+const QUIET = new Set<Classification>(["best", "excellent", "good"]);
+
 export function MoveList({ sans, mode = "full", activePly, onSelectPly, classes, className }: Props) {
   const figurine = useSettings((s) => s.figurine);
   const fmt = (s: string) => (figurine ? toFigurine(s) : s);
@@ -32,8 +34,8 @@ export function MoveList({ sans, mode = "full", activePly, onSelectPly, classes,
 
   if (mode === "hidden") {
     return (
-      <div className={cn("rounded-2xl bg-night-850/60 p-4 text-sm text-ivory-400 ring-1 ring-inset ring-ivory-100/[0.06]", className)}>
-        Move list hidden — keep the game in your head. {sans.length} plies played.
+      <div className={cn("glass-well rounded-control p-4 text-small text-muted", className)}>
+        The move list is hidden: keep the game in your head. {sans.length} {sans.length === 1 ? "move" : "moves"} played.
       </div>
     );
   }
@@ -42,17 +44,11 @@ export function MoveList({ sans, mode = "full", activePly, onSelectPly, classes,
     const last = sans[sans.length - 1];
     const ply = sans.length;
     return (
-      <div className={cn("rounded-2xl bg-night-850/60 p-4 ring-1 ring-inset ring-ivory-100/[0.06]", className)}>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ivory-500">Last move</div>
+      <div className={cn("glass-well rounded-control p-4", className)}>
+        <div className="text-small text-muted">Last move</div>
         <AnimatePresence mode="wait">
-          <motion.div
-            key={ply}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="mt-1 font-mono text-2xl text-ivory-50"
-          >
-            {last ? `${Math.ceil(ply / 2)}.${ply % 2 === 0 ? ".." : ""} ${fmt(last)}` : "—"}
+          <motion.div key={ply} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="mt-1 text-2xl font-semibold tabular text-ink">
+            {last ? `${Math.ceil(ply / 2)}.${ply % 2 === 0 ? ".." : ""} ${fmt(last)}` : "None yet"}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -61,16 +57,12 @@ export function MoveList({ sans, mode = "full", activePly, onSelectPly, classes,
 
   const rows = pairMoves(sans.map((s, i) => ({ san: s, ply: i + 1 })));
   return (
-    <div
-      ref={scroller}
-      className={cn("max-h-72 overflow-y-auto rounded-2xl bg-night-850/60 p-2 ring-1 ring-inset ring-ivory-100/[0.06]", className)}
-      data-testid="move-list"
-    >
-      {rows.length === 0 ? <div className="p-3 text-sm text-ivory-500">No moves yet.</div> : null}
-      <ol className="grid grid-cols-[2.5rem_1fr_1fr] gap-x-1 gap-y-0.5 font-mono text-[14px]">
+    <div ref={scroller} className={cn("glass-well max-h-72 overflow-y-auto rounded-control p-1.5", className)} data-testid="move-list">
+      {rows.length === 0 ? <div className="px-3 py-2.5 text-small text-muted">No moves yet.</div> : null}
+      <ol className="grid grid-cols-[2.25rem_1fr_1fr] gap-x-1 gap-y-0.5 text-[0.9375rem]">
         {rows.map((row) => (
           <li key={row.number} className="contents">
-            <span className="py-1 pr-1 text-right text-ivory-500 tabular">{row.number}.</span>
+            <span className="py-1.5 pr-1 text-right text-muted tabular">{row.number}.</span>
             {[row.white, row.black].map((cell, idx) =>
               cell ? (
                 <motion.button
@@ -82,15 +74,17 @@ export function MoveList({ sans, mode = "full", activePly, onSelectPly, classes,
                   onClick={onSelectPly ? () => onSelectPly(cell.ply) : undefined}
                   data-active={activePly === cell.ply}
                   tabIndex={onSelectPly ? 0 : -1}
+                  aria-current={activePly === cell.ply ? "step" : undefined}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-md px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
-                    activePly === cell.ply ? "bg-ember-400/20 text-ember-100" : "text-ivory-100",
-                    onSelectPly ? "hover:bg-ivory-100/[0.06]" : "cursor-default",
+                    "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-left font-semibold tabular outline-none transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus)]",
+                    activePly === cell.ply ? "bg-ink text-on-ink" : "text-ink",
+                    onSelectPly ? "cursor-pointer hover:bg-ink/[0.07]" : "cursor-default",
+                    activePly === cell.ply && onSelectPly && "hover:bg-ink",
                   )}
                 >
                   {fmt(cell.san)}
-                  {classes?.[cell.ply - 1] && classes[cell.ply - 1] !== "best" && classes[cell.ply - 1] !== "excellent" && classes[cell.ply - 1] !== "good" ? (
-                    <span className={cn("text-[11px] font-bold", CLASSIFICATION_META[classes[cell.ply - 1]!].tone)}>
+                  {classes?.[cell.ply - 1] && !QUIET.has(classes[cell.ply - 1]!) ? (
+                    <span className={cn("text-caption font-bold", activePly === cell.ply ? "text-on-ink" : CLASSIFICATION_META[classes[cell.ply - 1]!].tone)}>
                       {CLASSIFICATION_META[classes[cell.ply - 1]!].symbol}
                     </span>
                   ) : null}

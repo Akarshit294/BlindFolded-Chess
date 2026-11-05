@@ -1,7 +1,8 @@
 "use client";
 import type { Color, PieceSymbol } from "chess.js";
 import { motion } from "motion/react";
-import { PieceGlyph } from "./PieceGlyph";
+import type { PieceSetId } from "@/lib/settings/store";
+import { PieceImage } from "./PieceImage";
 
 /** Fragments as clip-path polygons (percentages of the piece box). */
 const SHARDS: Array<{ poly: string; dx: number; dy: number; rot: number }> = [
@@ -15,7 +16,7 @@ const SHARDS: Array<{ poly: string; dx: number; dy: number; rot: number }> = [
 ];
 
 type Props = {
-  set: string;
+  set: PieceSetId;
   color: Color;
   type: PieceSymbol;
   delay?: number;
@@ -36,12 +37,12 @@ export function Shatter({ set, color, type, delay = 0, onDone }: Props) {
           transition={{ duration: 0.62, delay, ease: [0.2, 0.7, 0.3, 1] }}
           onAnimationComplete={i === 0 ? onDone : undefined}
         >
-          <PieceGlyph set={set} color={color} type={type} className="h-full w-full" />
+          <PieceImage set={set} color={color} type={type} className="h-full w-full" />
         </motion.div>
       ))}
       <motion.div
         className="absolute inset-[18%] rounded-full"
-        style={{ background: "radial-gradient(closest-side, rgba(255,214,150,0.9), rgba(255,214,150,0))" }}
+        style={{ background: "radial-gradient(closest-side, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0))" }}
         initial={{ opacity: 0, scale: 0.4 }}
         animate={{ opacity: [0, 0.9, 0], scale: [0.4, 1.3, 1.6] }}
         transition={{ duration: 0.55, delay, times: [0, 0.25, 1] }}

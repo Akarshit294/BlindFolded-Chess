@@ -56,11 +56,12 @@ export function moverDrop(winBeforeWhite: number, winAfterWhite: number, mover: 
   return Math.max(0, before - after);
 }
 
-export const CLASSIFICATION_META: Record<Classification, { label: string; symbol: string; tone: string }> = {
-  best: { label: "Best", symbol: "★", tone: "text-jade-300" },
-  excellent: { label: "Excellent", symbol: "!", tone: "text-jade-400" },
-  good: { label: "Good", symbol: "✓", tone: "text-moon-300" },
-  inaccuracy: { label: "Inaccuracy", symbol: "?!", tone: "text-ember-300" },
-  mistake: { label: "Mistake", symbol: "?", tone: "text-ember-500" },
-  blunder: { label: "Blunder", symbol: "??", tone: "text-coral-400" },
+/** Move quality labels. Color carries meaning only here (desaturated): green good, ochre to red for errors. */
+export const CLASSIFICATION_META: Record<Classification, { label: string; symbol: string; tone: string; color: string }> = {
+  best: { label: "Best", symbol: "★", tone: "text-good", color: "var(--good)" },
+  excellent: { label: "Excellent", symbol: "!", tone: "text-good", color: "var(--good)" },
+  good: { label: "Good", symbol: "✓", tone: "text-muted", color: "var(--muted)" },
+  inaccuracy: { label: "Inaccuracy", symbol: "?!", tone: "text-warn", color: "var(--warn)" },
+  mistake: { label: "Mistake", symbol: "?", tone: "text-mistake", color: "var(--mistake)" },
+  blunder: { label: "Blunder", symbol: "??", tone: "text-bad", color: "var(--bad)" },
 };
