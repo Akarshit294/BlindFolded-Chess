@@ -6,7 +6,8 @@
  *   node scripts/design-shots.mjs --base http://127.0.0.1:3000 --out ../docs/design/after --set after
  *
  * --set before   pages only (the old UI had no in-game states worth scripting beyond one game)
- * --set after    pages plus key states (melt, peek, check, game over, review, drills, keyboard)
+ * --set after    pages plus key states (melt, peek, check, game over, review, every mode, drills, stats with
+ *                sample data, keyboard)
  * --only a,b     only the named shots (handy while iterating)
  *
  * Uses PW_CHROMIUM_PATH or CHROME_PATH when Playwright's own browser is not installed.
@@ -303,6 +304,35 @@ const STATES = {
     await waitPlayerTurn(page);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(900);
+  },
+  async silhouette(page) {
+    await page.goto(`${BASE}/play?e2e=1`);
+    await page.getByTestId("game-screen").waitFor();
+    await page.getByTestId("visibility-silhouette").first().click();
+    await typeMove(page, "e4");
+    await typeMove(page, "Nf3");
+    await waitPlayerTurn(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(1200);
+  },
+  async "empty-board"(page) {
+    await page.goto(`${BASE}/play?e2e=1`);
+    await page.getByTestId("game-screen").waitFor();
+    await page.getByTestId("visibility-empty").first().click();
+    await typeMove(page, "d4");
+    await waitPlayerTurn(page);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(700);
+  },
+  async "drill-memory-running"(page) {
+    await page.goto(`${BASE}/train/memory?go=1`);
+    await page.getByTestId("drill-running").waitFor({ timeout: 15_000 });
+    await page.waitForTimeout(1200);
+  },
+  async "drill-where-piece-running"(page) {
+    await page.goto(`${BASE}/train/where-piece?go=1`);
+    await page.getByTestId("drill-running").waitFor({ timeout: 15_000 });
+    await page.waitForTimeout(1200);
   },
   async "drill-running"(page) {
     await page.goto(`${BASE}/train/knight-routes?go=1`);

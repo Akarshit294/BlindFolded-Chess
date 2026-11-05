@@ -24,9 +24,9 @@ export function MobileDock() {
           exit={{ y: 90, opacity: 0, transition: { duration: 0.2 } }}
           transition={{ type: "spring", stiffness: 420, damping: 36 }}
           className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 md:hidden"
-          style={{ viewTransitionName: "site-dock" }}
         >
-          <ul className="glass-float mx-auto grid h-[var(--dock-h)] max-w-md grid-cols-5 rounded-[1.375rem] px-1.5">
+          {/* Named here, not on the nav: a view-transition-name on an ancestor would stop the backdrop blur. */}
+          <ul className="glass-float mx-auto grid h-[var(--dock-h)] max-w-md grid-cols-5 rounded-[1.375rem] px-1.5" style={{ viewTransitionName: "site-dock" }}>
             {NAV.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = item.icon;

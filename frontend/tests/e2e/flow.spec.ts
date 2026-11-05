@@ -23,6 +23,14 @@ async function typeMove(page: Page, san: string) {
   );
 }
 
+/** The game the store has saved (id and number of plies), or null. */
+async function storedGame(page: Page): Promise<{ id: string; plies: number } | null> {
+  return page.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem("bf:game") ?? "{}")?.state?.game;
+    return g ? { id: g.id as string, plies: (g.moves as string[]).length } : null;
+  });
+}
+
 test.describe("play-first flow", () => {
   test.beforeEach(async ({ page }) => resetStorage(page));
 
@@ -90,12 +98,27 @@ test.describe("play-first flow", () => {
     // One click: a new game with the same setup.
     await page.getByTestId("rematch").click();
     await expect(page.getByTestId("game-over")).toHaveCount(0);
+    await expect.poll(async () => (await storedGame(page))?.id).not.toBe(firstId);
     await expect(page.getByTestId("quick-setup").getByTestId("visibility-silhouette")).toHaveAttribute("aria-checked", "true");
-    const s = await waitForPlayerTurnOrEnd(page);
-    expect(s.moves).toEqual([]);
-    expect(s.result).toBeFalsy();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const b = (window as unknown as { __bf?: { moves: string[]; result: unknown } }).__bf;
+          return b ? `${b.moves.length}:${b.result ? "over" : "live"}` : "none";
+        }),
+      )
+      .toBe("0:live");
     const secondId = await page.evaluate(() => JSON.parse(localStorage.getItem("bf:game") ?? "{}")?.state?.game?.id ?? null);
     expect(secondId).not.toBe(firstId);
+
+    // The one-shot ?new=1&mode= parameters are gone for good: a reload restores this game instead of starting another.
+    await typeMove(page, "d4");
+    await expect(page).toHaveURL(/\/play$/);
+    await page.reload();
+    await expect(page.getByTestId("game-screen")).toBeVisible();
+    const restored = await waitForPlayerTurnOrEnd(page);
+    expect(restored.moves[0]).toBe("d2d4");
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("bf:game") ?? "{}")?.state?.game?.id ?? null)).toBe(secondId);
 
     // The home page remembers the setup for next time too.
     await page.goto("/");
@@ -121,11 +144,16 @@ test.describe("play-first flow", () => {
     await expect(page.getByTestId("move-list")).toContainText("c4");
 
     // From home, New game replaces it with a fresh one.
+    const old = await storedGame(page);
+    expect(old?.plies).toBe(4);
     await page.goto("/");
     await page.getByTestId("play-now").click();
     await expect(page.getByTestId("game-screen")).toBeVisible();
-    const fresh = await waitForPlayerTurnOrEnd(page);
-    expect(fresh.moves).toEqual([]);
+    await expect.poll(async () => {
+      const g = await storedGame(page);
+      return g && g.id !== old?.id ? g.plies : -1;
+    }).toBe(0);
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __bf?: { moves: string[] } }).__bf?.moves.length ?? -1)).toBe(0);
   });
 
   test("Change on the home page edits the setup and plays it", async ({ page }) => {

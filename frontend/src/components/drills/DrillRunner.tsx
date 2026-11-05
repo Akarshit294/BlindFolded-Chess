@@ -6,7 +6,8 @@
  */
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { ProgressLine } from "@/components/ui/Blocks";
 import { Button } from "@/components/ui/Button";
@@ -76,6 +77,21 @@ function readLevel(id: DrillId, max: number): number {
 }
 
 const noop = () => () => {};
+
+/**
+ * ?go=1 (a tap on the Train hub) starts the drill straight away, at the remembered level. Read from the router
+ * (see PlayIntent): the parameter is dropped with a null-state replaceState, so the router takes the new URL too.
+ */
+function GoIntent({ onGo }: { onGo: () => void }) {
+  const go = useSearchParams().get("go") === "1";
+  useEffect(() => {
+    if (!go) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    const t = window.setTimeout(onGo, 0);
+    return () => window.clearTimeout(t);
+  }, [go, onGo]);
+  return null;
+}
 
 export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   const [phase, setPhase] = useState<Phase>("intro");
@@ -159,17 +175,6 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
     setCount(3);
     setPhase("countdown");
   }, []);
-
-  // ?go=1 (a tap on the Train hub) starts straight away, at the remembered level.
-  const autostarted = useRef(false);
-  useEffect(() => {
-    if (autostarted.current) return;
-    autostarted.current = true;
-    if (new URLSearchParams(window.location.search).get("go") !== "1") return;
-    window.history.replaceState(window.history.state, "", window.location.pathname);
-    const t = window.setTimeout(begin, 0);
-    return () => window.clearTimeout(t);
-  }, [begin]);
 
   // Countdown 3-2-1, then the first question.
   useEffect(() => {
@@ -298,6 +303,9 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   if (phase === "intro") {
     return (
       <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
+        <Suspense fallback={null}>
+          <GoIntent onGo={begin} />
+        </Suspense>
         <Link href="/train" className="-my-2.5 inline-flex items-center gap-1 rounded-full py-2.5 text-small font-semibold text-muted transition-colors hover:text-ink">
           <IconChevronLeft size={16} /> All drills
         </Link>

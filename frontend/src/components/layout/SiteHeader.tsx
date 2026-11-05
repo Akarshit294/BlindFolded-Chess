@@ -55,8 +55,11 @@ export function SiteHeader() {
   return (
     <>
       <div ref={sentinel} aria-hidden="true" className="h-px" />
-      <header className="sticky top-2 z-40 -mt-px px-2 sm:top-3 sm:px-3" style={{ viewTransitionName: "site-header" }}>
+      <header className="sticky top-2 z-40 -mt-px px-2 sm:top-3 sm:px-3">
+        {/* The transition name sits on the glass bar itself: on an ancestor it would make that ancestor a backdrop
+            root, and the bar's blur would see nothing behind it. */}
         <div
+          style={{ viewTransitionName: "site-header" }}
           className={cn(
             "mx-auto flex h-[var(--header-h)] items-center justify-between gap-4 rounded-full px-3 transition-[background,box-shadow,border-color,backdrop-filter] duration-300 sm:px-5 lg:px-6",
             stuck ? "glass-float" : "border border-transparent",
