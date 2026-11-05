@@ -38,3 +38,6 @@ backend/scripts/.cache/
 
 # Agent worktrees
 .claude/worktrees/
+
+# Playwright MCP output (screenshots, traces)
+.playwright-mcp/
