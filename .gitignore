@@ -1,0 +1,40 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/playwright/.cache/
+
+# Generated at dev/build time
+frontend/public/engine/
+
+# Local data downloads
+backend/scripts/.cache/
+*.csv.zst
+
+# Env
+.env
+.env.local
+
+# Agent worktrees
+.claude/worktrees/
