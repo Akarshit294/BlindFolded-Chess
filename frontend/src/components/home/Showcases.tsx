@@ -31,7 +31,7 @@ function ModeDemo({ mode }: { mode: Visibility }) {
     return (
       <div className={cn("mb-mini", "relative bg-sunken")}>
         <ThemedImg light="/3d/hero/light-melted-720.webp" dark="/3d/hero/dark-melted-720.webp" className="absolute inset-0 h-full w-full scale-[1.45] object-cover" />
-        <span className="absolute inset-x-0 bottom-3 text-center font-display text-[1.75rem] font-bold uppercase leading-none text-ink [text-shadow:0_1px_12px_var(--studio-hi)]">Nf3</span>
+        <span className="absolute inset-x-0 bottom-3 text-center font-display text-[1.75rem] font-bold leading-none text-ink [text-shadow:0_1px_12px_var(--studio-hi)]">Nf3</span>
       </div>
     );
   }

@@ -70,7 +70,7 @@ export function TrainHub() {
                   ) : (
                     <span className="text-muted">Not started yet</span>
                   )}
-                  <Link href={`/train/${d.id}`} className="relative z-10 rounded-full px-1 font-semibold text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+                  <Link href={`/train/${d.id}`} className="relative z-10 -my-2.5 rounded-full px-1 py-2.5 font-semibold text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
                     Level {lvl}
                   </Link>
                 </div>

@@ -10,10 +10,10 @@ export function SiteFooter() {
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <BackendPill />
-          <Link href="/credits" className="rounded font-semibold text-ink underline-offset-4 hover:underline">
+          <Link href="/credits" className="-my-2.5 inline-block rounded py-2.5 font-semibold text-ink underline-offset-4 hover:underline">
             Credits
           </Link>
-          <Link href="/settings" className="rounded font-semibold text-ink underline-offset-4 hover:underline">
+          <Link href="/settings" className="-my-2.5 inline-block rounded py-2.5 font-semibold text-ink underline-offset-4 hover:underline">
             Settings
           </Link>
         </div>

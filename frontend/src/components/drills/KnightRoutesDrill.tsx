@@ -93,7 +93,7 @@ function Question({ q, locked, onAnswer, result }: QuestionProps<KnightRouteQ>) 
           </p>
         ) : null}
       </div>
-      <motion.div initial={false} animate={{ opacity: result ? 1 : 0.9 }}>
+      <motion.div initial={false} animate={{ opacity: result || !shown ? 1 : 0.9 }}>
         {shown ? (
           <RouteReplay path={shown} blocked={q.blocked} />
         ) : (

@@ -399,12 +399,12 @@ export function PuzzleTrainer() {
 
               <dl className="mt-5 space-y-2" data-testid="puzzle-position">
                 {(["w", "b"] as const).map((c) => (
-                  <div key={c} className="glass-well flex gap-3 rounded-control p-3.5">
-                    <PieceImage color={c} type="k" className="h-10 w-10 shrink-0" />
-                    <div className="min-w-0">
-                      <dt className="text-small font-semibold text-ink">{c === "w" ? "White" : "Black"}</dt>
-                      <dd className="mt-0.5 text-[0.9375rem] leading-relaxed text-fg">{describeSide(pieces, c) || "Nothing"}</dd>
-                    </div>
+                  <div key={c} className="glass-well relative min-h-[4.25rem] rounded-control py-3.5 pl-[4.125rem] pr-3.5">
+                    <dt className="text-small font-semibold text-ink">
+                      <PieceImage color={c} type="k" className="absolute left-3.5 top-3.5 h-10 w-10" />
+                      {c === "w" ? "White" : "Black"}
+                    </dt>
+                    <dd className="mt-0.5 text-[0.9375rem] leading-relaxed text-fg">{describeSide(pieces, c) || "Nothing"}</dd>
                   </div>
                 ))}
               </dl>

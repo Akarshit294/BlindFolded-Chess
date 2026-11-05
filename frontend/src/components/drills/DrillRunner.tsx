@@ -12,6 +12,7 @@ import { ProgressLine } from "@/components/ui/Blocks";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel, Panel, Segmented } from "@/components/ui/Controls";
 import { DisplayTitle, PageHeader } from "@/components/ui/Display";
+import { DrillVisual } from "./DrillVisual";
 import { IconArrowRight, IconCheck, IconChevronLeft, IconClock, IconFire, IconRefresh, IconX } from "@/components/ui/Icons";
 import { announce } from "@/lib/a11y/announcer";
 import { playSound } from "@/lib/audio/sounds";
@@ -297,65 +298,83 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   if (phase === "intro") {
     return (
       <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
-        <Link href="/train" className="inline-flex items-center gap-1 rounded-full text-small font-semibold text-muted transition-colors hover:text-ink">
+        <Link href="/train" className="-my-2.5 inline-flex items-center gap-1 rounded-full py-2.5 text-small font-semibold text-muted transition-colors hover:text-ink">
           <IconChevronLeft size={16} /> All drills
         </Link>
         <PageHeader thin={meta.display[0]} bold={meta.display[1]} lead={meta.tagline} className="mt-5" />
-        <Panel className="mt-10 max-w-3xl p-5 sm:p-6">
-          <div className="flex items-baseline justify-between gap-3">
-            <FieldLabel id={`levels-${meta.id}`} className="mb-0">
-              Level
-            </FieldLabel>
-            <span className="text-small text-muted">
-              Drill rating <span className="font-semibold tabular text-ink">{rating}</span>
-            </span>
-          </div>
-          <div role="radiogroup" aria-labelledby={`levels-${meta.id}`} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {meta.levels.map((l, i) => {
-              const active = level === i + 1;
-              return (
-                <button
-                  key={l.name}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  data-testid={`drill-level-${i + 1}`}
-                  onClick={() => setLevel(i + 1)}
-                  className={cn(
-                    "flex cursor-pointer items-start gap-3 rounded-control p-3.5 text-left outline-none transition-[background,box-shadow,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus)] active:scale-[0.99]",
-                    active ? "pill-secondary" : "hover:bg-ink/[0.05]",
-                  )}
-                >
-                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-small font-semibold tabular", active ? "bg-ink text-on-ink" : "glass-well text-ink")}>{i + 1}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-ink">{l.name}</span>
-                      {bests[i + 1] !== undefined ? <span className="text-caption font-semibold text-muted">best {bests[i + 1]}%</span> : null}
-                    </span>
-                    <span className="mt-0.5 block text-small text-muted">{l.blurb}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-            <div>
-              <FieldLabel>Mode</FieldLabel>
-              <Segmented<"standard" | "timed">
-                label="Mode"
-                value={timed ? "timed" : "standard"}
-                onChange={(v) => setTimed(v === "timed")}
-                options={[
-                  { value: "standard", label: `${meta.standardCount} ${meta.unit}` },
-                  { value: "timed", label: `Timed, ${meta.timedSeconds}s` },
-                ]}
-              />
+        <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,46rem)_minmax(0,1fr)] lg:items-start xl:gap-12">
+          <Panel className="max-w-3xl p-5 sm:p-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <FieldLabel id={`levels-${meta.id}`} className="mb-0">
+                Level
+              </FieldLabel>
+              <span className="text-small text-muted">
+                Drill rating <span className="font-semibold tabular text-ink">{rating}</span>
+              </span>
             </div>
-            <Button variant="primary" size="lg" onClick={begin} data-testid="drill-start" trailingIcon={<IconArrowRight size={18} />}>
-              Start
-            </Button>
+            <div role="radiogroup" aria-labelledby={`levels-${meta.id}`} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {meta.levels.map((l, i) => {
+                const active = level === i + 1;
+                return (
+                  <button
+                    key={l.name}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    data-testid={`drill-level-${i + 1}`}
+                    onClick={() => setLevel(i + 1)}
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-control p-3.5 text-left outline-none transition-[background,box-shadow,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus)] active:scale-[0.99]",
+                      active ? "pill-secondary" : "hover:bg-ink/[0.05]",
+                    )}
+                  >
+                    <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-small font-semibold tabular", active ? "bg-ink text-on-ink" : "glass-well text-ink")}>{i + 1}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-ink">{l.name}</span>
+                        {bests[i + 1] !== undefined ? <span className="text-caption font-semibold text-muted">best {bests[i + 1]}%</span> : null}
+                      </span>
+                      <span className="mt-0.5 block text-small text-muted">{l.blurb}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div>
+                <FieldLabel>Mode</FieldLabel>
+                <Segmented<"standard" | "timed">
+                  label="Mode"
+                  value={timed ? "timed" : "standard"}
+                  onChange={(v) => setTimed(v === "timed")}
+                  options={[
+                    { value: "standard", label: `${meta.standardCount} ${meta.unit}` },
+                    { value: "timed", label: `Timed, ${meta.timedSeconds}s` },
+                  ]}
+                />
+              </div>
+              <Button variant="primary" size="lg" onClick={begin} data-testid="drill-start" trailingIcon={<IconArrowRight size={18} />}>
+                Start
+              </Button>
+            </div>
+          </Panel>
+          {/* Wide screens: what the drill looks like, beside the choices (the radios above already say it all). */}
+          <div className="hidden lg:block" aria-hidden="true">
+            <div className="glass-panel rounded-panel p-5">
+              <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-control bg-sunken/60">
+                <div className="scale-[1.9]">
+                  <DrillVisual id={meta.id} />
+                </div>
+              </div>
+              <p className="mt-4 text-small text-muted">
+                <span className="font-semibold text-ink">
+                  Level {level}, {levelMeta.name}.
+                </span>{" "}
+                {levelMeta.blurb} {timed ? `As many as you can in ${meta.timedSeconds} seconds.` : `${meta.standardCount} ${meta.unit}, at your pace.`}
+              </p>
+            </div>
           </div>
-        </Panel>
+        </div>
       </div>
     );
   }
@@ -364,9 +383,9 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   if (phase === "countdown") {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6" aria-live="assertive">
-        <p className="text-small font-semibold text-muted">
+        <h1 className="text-small font-semibold text-muted">
           {meta.title}, level {level}: {levelMeta.name}
-        </p>
+        </h1>
         <AnimatePresence mode="popLayout">
           <motion.div
             key={count}
@@ -408,7 +427,7 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
           {[
             { label: "Best streak", value: <AnimatedNumber value={stats.bestStreak} /> },
             { label: "Time", value: formatDuration(summary?.durationMs ?? 0) },
-            { label: "Per answer", value: stats.answered ? `${((summary?.durationMs ?? 0) / 1000 / stats.answered).toFixed(1)}s` : "None" },
+            { label: "Per answer", value: stats.answered ? `${((summary?.durationMs ?? 0) / 1000 / stats.answered).toFixed(1)}s` : "–" },
             {
               label: "Drill rating",
               value: (
@@ -455,6 +474,9 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   /* ------------------------------------------------------------------ running */
   return (
     <div className="px-5 pb-10 pt-4 sm:px-8 lg:px-12 lg:pt-6" data-testid="drill-running">
+      <h1 className="sr-only">
+        {meta.title}, level {level}
+      </h1>
       <div className="mb-7 flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => void finish()}>
           End

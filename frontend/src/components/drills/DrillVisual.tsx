@@ -7,7 +7,7 @@ export function DrillVisual({ id }: { id: string }) {
     case "square-color":
       return (
         <div className="flex items-center gap-3" aria-hidden="true">
-          <span className={cn("flex h-16 w-16 items-center justify-center rounded-xl font-display text-2xl font-bold uppercase text-ink shadow-raised", "demo-flip")}>f6</span>
+          <span className={cn("flex h-16 w-16 items-center justify-center rounded-xl font-display text-2xl font-bold text-ink shadow-raised", "demo-flip")}>f6</span>
           <span className="text-small font-semibold text-muted">light or dark?</span>
         </div>
       );

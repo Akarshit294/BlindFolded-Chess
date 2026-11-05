@@ -566,7 +566,9 @@ export function GameScreen() {
                 <StatusLine over={over} myTurn={turn === player} thinking={thinking} inCheck={inCheck} engineName={level.name} />
                 {phone ? (
                   <Portal>
-                    <div
+                    {/* A labelled region: portalled to the body, it still sits in a landmark. */}
+                    <section
+                      aria-label="Your move"
                       className={cn(
                         "glass-float fixed inset-x-2 z-50 rounded-[1.5rem] p-2 transition-[bottom] duration-150",
                         "bottom-[calc(max(0.5rem,env(safe-area-inset-bottom))+var(--kb))]",
@@ -576,7 +578,7 @@ export function GameScreen() {
                     >
                       <div className="mb-2 [[data-kb=open]_&]:hidden">{actions}</div>
                       {input}
-                    </div>
+                    </section>
                   </Portal>
                 ) : (
                   <div className="mt-3 flex flex-col gap-3">

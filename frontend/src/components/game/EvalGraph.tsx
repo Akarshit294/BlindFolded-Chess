@@ -30,7 +30,7 @@ export function EvalGraph({ curve, classes, activePly, onSelect }: Props) {
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className="h-24 w-full cursor-pointer overflow-hidden rounded-control shadow-[inset_0_0_0_1px_var(--line-strong)]"
+      className="h-20 w-full cursor-pointer overflow-hidden rounded-control shadow-[inset_0_0_0_1px_var(--line-strong)]"
       role="img"
       aria-label={`Evaluation graph over ${n} moves${classes ? `, ${errors} marked errors` : ""}. Click to jump to a move.`}
       onClick={(e) => {
@@ -40,7 +40,7 @@ export function EvalGraph({ curve, classes, activePly, onSelect }: Props) {
         onSelect(Math.max(0, Math.min(n, ply)));
       }}
     >
-      <rect width={W} height={H} fill="#1b1b1b" />
+      <rect width={W} height={H} fill="#262626" />
       <motion.path d={area} fill="#f2f2f2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />
       <line x1="0" y1={H / 2} x2={W} y2={H / 2} stroke="#8a8a8a" strokeOpacity="0.6" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
       <motion.path

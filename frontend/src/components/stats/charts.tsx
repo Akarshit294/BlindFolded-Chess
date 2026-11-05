@@ -171,8 +171,9 @@ export function LineChart({
               onPointerLeave={() => setHoverT(null)}
             >
               <defs>
+                {/* The lines draw in with a left-to-right wipe of the clip (a pathLength animation would replace the dashes). */}
                 <clipPath id={clipId}>
-                  <rect x={pad.l - 6} y={0} width={plotW + 12} height={height} />
+                  <motion.rect x={pad.l - 6} y={0} height={height} initial={{ width: 0 }} animate={{ width: plotW + 12 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} />
                 </clipPath>
               </defs>
               {ticks.map((t) => (
@@ -190,9 +191,12 @@ export function LineChart({
               ))}
               <g clipPath={`url(#${clipId})`}>
                 {live.map((s, si) => {
-                  const d = s.points.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+                  // A start point right on top of the next one (the 1200 start just before a first rating) would only
+                  // draw a vertical tick.
+                  const pts = s.points.length > 1 && x(s.points[1]!.t) - x(s.points[0]!.t) < 2 ? s.points.slice(1) : s.points;
+                  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
                   return (
-                    <motion.path
+                    <path
                       key={s.id}
                       d={d}
                       fill="none"
@@ -200,10 +204,7 @@ export function LineChart({
                       strokeDasharray={SERIES_DASH[si]}
                       strokeWidth={2}
                       strokeLinejoin="round"
-                      strokeLinecap="round"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                      strokeLinecap={SERIES_DASH[si] ? "butt" : "round"}
                     />
                   );
                 })}

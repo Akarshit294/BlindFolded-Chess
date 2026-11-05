@@ -277,7 +277,7 @@ export function StatsDashboard() {
                   return (
                     <tr key={d.id} className="border-t border-line">
                       <td className="py-2.5">
-                        <Link href={`/train/${d.id}`} className="font-semibold text-ink underline decoration-transparent underline-offset-4 hover:decoration-ink">
+                        <Link href={`/train/${d.id}`} className="-my-2 inline-block py-2 font-semibold text-ink underline decoration-transparent underline-offset-4 hover:decoration-ink">
                           {d.title}
                         </Link>
                       </td>

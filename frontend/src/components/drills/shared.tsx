@@ -174,5 +174,5 @@ export function Prompt({ children, sub }: { children: ReactNode; sub?: ReactNode
 }
 
 export function Sq({ children }: { children: ReactNode }) {
-  return <span className="inline-block rounded-full bg-ink px-3 font-display font-bold uppercase tracking-[0.02em] text-on-ink">{children}</span>;
+  return <span className="inline-block rounded-full bg-ink px-3 font-display font-bold tracking-[0.02em] text-on-ink">{children}</span>;
 }

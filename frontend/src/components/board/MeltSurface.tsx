@@ -176,6 +176,12 @@ export function MeltSurface({ melt, ripple = null, still = false, ownSquares = f
 
     function tick(now: number) {
       const a = anim.current;
+      // Off screen (scrolled away): stop; coming back into view kicks the loop again.
+      if (!onScreen) {
+        a.raf = 0;
+        a.last = 0;
+        return;
+      }
       const dt = a.last ? Math.min(0.05, (now - a.last) / 1000) : 0.016;
       a.last = now;
       const rising = a.target > a.current;
@@ -236,6 +242,12 @@ export function MeltSurface({ melt, ripple = null, still = false, ownSquares = f
     };
     const ro = new ResizeObserver(resize);
     ro.observe(c);
+    let onScreen = true;
+    const io = new IntersectionObserver(([e]) => {
+      onScreen = !!e?.isIntersecting;
+      if (onScreen) kick();
+    });
+    io.observe(c);
     // The board theme and the interface theme both change the square colors.
     const mo = new MutationObserver(readColors);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-board-theme"] });
@@ -246,6 +258,7 @@ export function MeltSurface({ melt, ripple = null, still = false, ownSquares = f
       cancelAnimationFrame(a.raf);
       a.raf = 0;
       ro.disconnect();
+      io.disconnect();
       mo.disconnect();
       gl.getExtension("WEBGL_lose_context")?.loseContext();
       c.remove();

@@ -17,7 +17,6 @@ function Section({ id, title, children }: { id: string; title: string; children:
   return (
     <motion.section
       id={id}
-      className="scroll-mt-24"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
