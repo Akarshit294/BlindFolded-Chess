@@ -22,7 +22,7 @@ export function EvalBar({ win, label, orientation = "white", className }: Props)
 
   return (
     <div
-      className={cn("relative w-3.5 overflow-hidden rounded-full bg-night-900 ring-1 ring-ivory-100/10 sm:w-4", className)}
+      className={cn("relative w-3.5 overflow-hidden rounded-full bg-[#141414] shadow-[inset_0_0_0_1px_var(--line-strong)] sm:w-4", className)}
       role="meter"
       aria-label="Evaluation"
       aria-valuemin={0}
@@ -31,14 +31,14 @@ export function EvalBar({ win, label, orientation = "white", className }: Props)
       aria-valuetext={label}
     >
       <motion.div
-        className="absolute inset-0 bg-gradient-to-t from-ivory-200 to-ivory-50"
+        className="absolute inset-0 bg-[linear-gradient(to_top,#e9e9e9,#ffffff)]"
         style={{ scaleY, transformOrigin: whiteOnBottom ? "bottom" : "top" }}
       />
-      <div className="absolute inset-x-0 top-1/2 h-px bg-ember-400/50" />
+      <div className="absolute inset-x-0 top-1/2 h-px bg-[#888]" />
       <span
         className={cn(
-          "absolute left-1/2 -translate-x-1/2 font-mono text-[9px] font-semibold tracking-tight [writing-mode:vertical-rl]",
-          win >= 50 === whiteOnBottom ? "bottom-1 text-night-800" : "top-1 text-ivory-200",
+          "absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold tabular tracking-tight [writing-mode:vertical-rl]",
+          win >= 50 === whiteOnBottom ? "bottom-1 text-[#1a1a1a]" : "top-1 text-[#f2f2f2]",
         )}
       >
         {label}

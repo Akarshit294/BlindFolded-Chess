@@ -1,5 +1,10 @@
 # Morning report
 
+> **Update:** the interface has since been redesigned ("Studio": light and dark themes, 3D-rendered pieces, a
+> melting board, a play-first flow). Every feature below still works; only the descriptions of the old look (the
+> landing animation, the default piece set, the board themes) are out of date. See
+> [`docs/design/REDESIGN_REPORT.md`](docs/design/REDESIGN_REPORT.md).
+
 Good morning! The blindfold chess trainer is built, tested and ready for you to try. Everything is on the
 branch `claude/blindfold-chess-training-tbzakt`, and the pull request to `main` is
 [Akarshit294/BlindFolded-Chess#1](https://github.com/Akarshit294/BlindFolded-Chess/pull/1). CI is green.

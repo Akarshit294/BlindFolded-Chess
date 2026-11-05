@@ -1,11 +1,11 @@
 /**
  * "Lumen" — an original piece set drawn for this project (GPL-3.0, like the rest of the repo).
- * Geometric silhouettes with soft gradients; viewBox 0 0 45 45 to match the classic set.
+ * Geometric silhouettes with soft monochrome gradients; viewBox 0 0 45 45 to match the classic set.
  * Gradients are referenced by id and defined once in <PieceSprite>.
  */
 
-const W = { fill: "url(#lumen-w)", stroke: "#141823", detail: "#141823", detailOpacity: "0.55" };
-const B = { fill: "url(#lumen-b)", stroke: "#06080d", detail: "#e8e1d1", detailOpacity: "0.75" };
+const W = { fill: "url(#lumen-w)", stroke: "#1a1a1a", detail: "#1a1a1a", detailOpacity: "0.55" };
+const B = { fill: "url(#lumen-b)", stroke: "#050505", detail: "#e6e6e6", detailOpacity: "0.75" };
 type Palette = typeof W;
 
 const base = (p: Palette, x0 = 10.5, x1 = 34.5) =>
@@ -105,12 +105,12 @@ export const LUMEN: Record<string, string> = {
 /** Gradient definitions used by the Lumen pieces. */
 export const LUMEN_DEFS = `
 <radialGradient id="lumen-w" cx="35%" cy="25%" r="85%">
-  <stop offset="0" stop-color="#fffdf7"/>
-  <stop offset="0.6" stop-color="#f1eadb"/>
-  <stop offset="1" stop-color="#d9cfbb"/>
+  <stop offset="0" stop-color="#ffffff"/>
+  <stop offset="0.6" stop-color="#ededed"/>
+  <stop offset="1" stop-color="#cdcdcd"/>
 </radialGradient>
 <radialGradient id="lumen-b" cx="35%" cy="25%" r="85%">
-  <stop offset="0" stop-color="#4a5270"/>
-  <stop offset="0.55" stop-color="#2a3044"/>
-  <stop offset="1" stop-color="#161a26"/>
+  <stop offset="0" stop-color="#4b4b4b"/>
+  <stop offset="0.55" stop-color="#262626"/>
+  <stop offset="1" stop-color="#0d0d0d"/>
 </radialGradient>`;

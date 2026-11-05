@@ -1,6 +1,7 @@
 "use client";
 import type { Square } from "chess.js";
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 import { emptyBoardReach } from "@/lib/chess/squares";
 import { focusOnDesktop } from "@/lib/utils/hooks";
 import { lineQuestion, lineQuestionText, parseSquareList, type LineQ } from "@/lib/drills/generators";
@@ -114,9 +115,9 @@ function NumberEntry({ locked, onSubmit }: { locked: boolean; onSubmit: (n: numb
         onChange={(e) => setV(e.target.value.replace(/[^0-9]/g, ""))}
         aria-label="Number of squares"
         data-testid="drill-input"
-        className="h-12 w-32 rounded-2xl bg-night-850/90 px-4 font-mono text-lg text-ivory-50 outline-none ring-1 ring-inset ring-ivory-100/10 focus:ring-moon-400/50"
+        className="glass-well h-12 w-32 rounded-full px-5 text-lg font-semibold tabular text-ink outline-none focus:shadow-[inset_0_0_0_1.5px_var(--ink)]"
       />
-      <button type="submit" disabled={locked || !v} data-testid="drill-submit" className="h-12 rounded-2xl bg-gradient-to-b from-ember-300 to-ember-500 px-5 font-semibold text-night-950 disabled:opacity-40">
+      <button type="submit" disabled={locked || !v} data-testid="drill-submit" className={buttonClass("primary", "md", "h-12 px-6")}>
         Check
       </button>
     </form>

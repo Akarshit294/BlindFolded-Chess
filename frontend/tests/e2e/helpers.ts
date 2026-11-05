@@ -69,12 +69,23 @@ export function rng(seed: number) {
   };
 }
 
+/**
+ * /play starts a game at once; the quick setup beside the board changes it before the first move (each change
+ * restarts the waiting game).
+ */
 export async function startGame(page: Page, opts: { visibility: string; level?: number }) {
   await page.goto("/play?e2e=1");
-  await page.getByTestId(`visibility-${opts.visibility}`).click();
-  await page.getByTestId(`level-${opts.level ?? 10}`).click();
-  await page.getByTestId("start-game").click();
   await expect(page.getByTestId("game-screen")).toBeVisible();
+  await page.getByTestId(`visibility-${opts.visibility}`).click();
+  await expect(page.getByTestId(`visibility-${opts.visibility}`)).toHaveAttribute("aria-checked", "true");
+  await page.getByTestId(`level-${opts.level ?? 10}`).click();
+  await expect(page.getByTestId(`level-${opts.level ?? 10}`)).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("game-screen")).toBeVisible();
+}
+
+/** Moves played so far in the live game (from the e2e hook). */
+export async function movesPlayed(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __bf?: BfState }).__bf?.moves ?? []);
 }
 
 /**

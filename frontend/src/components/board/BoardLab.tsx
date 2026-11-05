@@ -69,11 +69,11 @@ export function BoardLab() {
       />
       <div className="flex flex-col gap-2">
         {SCENARIOS.map((s) => (
-          <button key={s.id} data-scenario={s.id} onClick={() => run(s.id)} className="rounded-lg bg-night-700 px-3 py-2 text-left text-sm text-ivory-100 hover:bg-night-600">
+          <button key={s.id} data-scenario={s.id} onClick={() => run(s.id)} className="glass-well rounded-full px-4 py-2 text-left text-small font-semibold text-ink hover:bg-ink/10">
             {s.id}
           </button>
         ))}
-        <button onClick={() => ref.current?.shake()} className="rounded-lg bg-night-700 px-3 py-2 text-left text-sm text-ivory-100">
+        <button onClick={() => ref.current?.shake()} className="glass-well rounded-full px-4 py-2 text-left text-small font-semibold text-ink">
           shake
         </button>
       </div>

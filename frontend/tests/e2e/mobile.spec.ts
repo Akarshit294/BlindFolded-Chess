@@ -8,8 +8,9 @@ test("touch drag plays a move on a phone", async ({ page, context }) => {
   await resetStorage(page);
   await page.goto("/play?e2e=1");
   await page.getByTestId("visibility-full").click();
-  await page.getByTestId("start-game").click();
+  await expect(page.getByTestId("visibility-full")).toHaveAttribute("aria-checked", "true");
   await waitForPlayerTurnOrEnd(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
   const box = (await page.locator('[aria-roledescription="chessboard"]').boundingBox())!;
   const sq = box.width / 8;
   const at = (file: number, rank: number) => ({ x: box.x + (file + 0.5) * sq, y: box.y + (7 - rank + 0.5) * sq });
@@ -24,6 +25,24 @@ test("touch drag plays a move on a phone", async ({ page, context }) => {
   await page.waitForFunction(() => ((window as unknown as { __bf?: { moves: string[] } }).__bf?.moves.length ?? 0) >= 1);
   const moves = await page.evaluate(() => (window as unknown as { __bf: { moves: string[] } }).__bf.moves);
   expect(moves[0]).toBe("e2e4");
+});
+
+test("the move bar replaces the dock during a game, above everything else", async ({ page }) => {
+  await resetStorage(page);
+  await page.goto("/");
+  // The dock is there on ordinary pages...
+  await expect(page.getByRole("navigation", { name: "Main" }).last()).toBeVisible();
+  await page.getByTestId("play-now").click();
+  await expect(page.getByTestId("game-screen")).toBeVisible();
+  // ...and gives way to the move bar in a game.
+  const bar = page.getByTestId("move-bar");
+  await expect(bar).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(0);
+  const box = (await bar.boundingBox())!;
+  const vh = page.viewportSize()!.height;
+  expect(box.y + box.height).toBeGreaterThan(vh - 40);
+  await expect(bar.getByTestId("move-input")).toBeVisible();
+  await expect(bar.getByTestId("peek")).toBeVisible();
 });
 
 for (const path of ["/", "/play", "/train", "/puzzles", "/stats", "/learn", "/settings", "/credits", "/train/memory"]) {

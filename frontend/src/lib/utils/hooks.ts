@@ -1,5 +1,5 @@
 "use client";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { listVoices, ttsSupported } from "@/lib/speech/tts";
 
 const noop = () => () => {};
@@ -52,4 +52,46 @@ export function hasFinePointer(): boolean {
  */
 export function focusOnDesktop(el: HTMLElement | null | undefined) {
   if (el && hasFinePointer()) el.focus({ preventScroll: true });
+}
+
+/**
+ * Keeps --kb on <html> equal to the height of the on-screen keyboard (iOS overlays it on the page; Android with
+ * interactive-widget=resizes-content resizes the layout instead, giving 0). Fixed bars add it to their offset,
+ * and data-kb="open" lets them tidy up while typing.
+ */
+export function useKeyboardInset(enabled: boolean) {
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!enabled || !vv) return;
+    const root = document.documentElement;
+    const update = () => {
+      const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      root.style.setProperty("--kb", `${kb}px`);
+      const open = kb > 80 || (document.activeElement instanceof HTMLInputElement && window.innerHeight < screen.height * 0.6);
+      if (open) root.setAttribute("data-kb", "open");
+      else root.removeAttribute("data-kb");
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    update();
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      root.style.removeProperty("--kb");
+      root.removeAttribute("data-kb");
+    };
+  }, [enabled]);
+}
+
+/** A media query as state (false on the server and during hydration). */
+export function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(query);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 }

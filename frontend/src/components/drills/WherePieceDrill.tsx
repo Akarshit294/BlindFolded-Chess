@@ -4,7 +4,7 @@ import { Chess } from "chess.js";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Board } from "@/components/board/Board";
-import { PieceGlyph } from "@/components/board/PieceGlyph";
+import { PieceImage } from "@/components/board/PieceImage";
 import { Button } from "@/components/ui/Button";
 import { IconVolume } from "@/components/ui/Icons";
 import { formatMoveList, PIECE_NAMES, sanToSpeech } from "@/lib/chess/notation";
@@ -45,9 +45,9 @@ function PiecePicker({ onPick, locked }: { onPick: (v: string) => void; locked: 
               onClick={() => onPick(`${c === "w" ? "white" : "black"} ${PIECE_NAMES[p]}`)}
               aria-label={`${c === "w" ? "White" : "Black"} ${PIECE_NAMES[p]}`}
               data-testid={`pick-${c}${p}`}
-              className="aspect-square rounded-xl bg-night-750 p-1 outline-none ring-1 ring-inset ring-ivory-100/10 hover:bg-night-600 focus-visible:ring-2 focus-visible:ring-moon-300 disabled:opacity-50"
+              className="pill-secondary aspect-square cursor-pointer rounded-control p-1 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:opacity-50"
             >
-              <PieceGlyph set={set} color={c} type={p} className="h-full w-full" />
+              <PieceImage set={set} color={c} type={p} className="h-full w-full" />
             </motion.button>
           ))}
         </div>
@@ -57,7 +57,7 @@ function PiecePicker({ onPick, locked }: { onPick: (v: string) => void; locked: 
         disabled={locked}
         onClick={() => onPick("empty")}
         data-testid="pick-empty"
-        className="h-11 w-full rounded-xl bg-night-750 text-sm font-semibold text-ivory-200 ring-1 ring-inset ring-ivory-100/10 hover:bg-night-600 disabled:opacity-50"
+        className="glass-well h-11 w-full cursor-pointer rounded-full text-small font-semibold text-ink hover:bg-ink/[0.08] disabled:opacity-50"
       >
         Empty square
       </button>
@@ -100,14 +100,14 @@ function Question({ q, level, locked, onAnswer }: QuestionProps<WhereRound>) {
       <div>
         <Prompt sub={audioOnly ? "Listen carefully — the moves are only read aloud." : "Play these moves on the board in your head."}>The game so far</Prompt>
         {audioOnly ? (
-          <div className="flex items-center gap-3 rounded-2xl bg-night-850/80 p-5 text-ivory-300 ring-1 ring-inset ring-ivory-100/10">
-            <IconVolume className="text-moon-300" /> {q.seq.sans.length} plies, read aloud.
+          <div className="glass-panel flex items-center gap-3 rounded-panel p-5 text-fg">
+            <IconVolume className="text-ink" /> {q.seq.sans.length} plies, read aloud.
           </div>
         ) : (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="rounded-2xl bg-night-850/80 p-5 font-mono text-xl leading-relaxed text-ivory-50 ring-1 ring-inset ring-ivory-100/10"
+            className="glass-panel rounded-panel p-5 text-xl font-semibold leading-relaxed tabular text-ink"
             data-testid="where-moves"
             data-ucis={q.seq.ucis.join(" ")}
           >
@@ -137,12 +137,12 @@ function Question({ q, level, locked, onAnswer }: QuestionProps<WhereRound>) {
               key={i}
               className={cn(
                 "h-1.5 flex-1 rounded-full",
-                i < marks.length ? (marks[i] ? "bg-jade-400" : "bg-coral-400") : i === idx ? "bg-ember-400" : "bg-night-600",
+                i < marks.length ? (marks[i] ? "bg-good" : "bg-bad") : i === idx ? "bg-ink" : "bg-ink/15",
               )}
             />
           ))}
         </div>
-        {!hideInAsk ? <p className="mb-4 font-mono text-sm text-ivory-400">{text}</p> : null}
+        {!hideInAsk ? <p className="mb-4 text-small font-semibold tabular text-muted">{text}</p> : null}
         <AnimatePresence mode="wait">
           <motion.div key={idx} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
             {cur.kind === "on-square" ? (
@@ -182,14 +182,14 @@ function Question({ q, level, locked, onAnswer }: QuestionProps<WhereRound>) {
             )}
           </motion.div>
         </AnimatePresence>
-        {lastWrong && !locked ? <p className="mt-3 text-sm text-coral-300">{lastWrong}</p> : null}
+        {lastWrong && !locked ? <p className="mt-3 text-small font-semibold text-bad">{lastWrong}</p> : null}
       </div>
       {locked ? (
         <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
           <Board fen={q.seq.fen} interactive={false} lastMove={{ from: q.seq.ucis.at(-1)!.slice(0, 2) as Square, to: q.seq.ucis.at(-1)!.slice(2, 4) as Square }} ariaLabel="Final position" />
         </motion.div>
       ) : (
-        <div className="hidden aspect-square w-full items-center justify-center rounded-[10px] bg-night-900 text-sm text-ivory-500 ring-1 ring-ivory-100/[0.06] md:flex">
+        <div className="glass-well hidden aspect-square w-full items-center justify-center rounded-[0.875rem] text-small text-muted md:flex">
           The position is revealed at the end.
         </div>
       )}

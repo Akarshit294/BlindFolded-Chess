@@ -10,12 +10,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { Board } from "@/components/board/Board";
-import { PieceGlyph } from "@/components/board/PieceGlyph";
+import { MeltSurface } from "@/components/board/MeltSurface";
+import { PieceImage } from "@/components/board/PieceImage";
 import { Confetti } from "@/components/fx/Confetti";
 import { MoveInput, type MoveInputHandle } from "@/components/game/MoveInput";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Button } from "@/components/ui/Button";
-import { Badge, Card, SectionLabel, Segmented, Toggle } from "@/components/ui/Controls";
+import { Badge, FieldLabel, Panel, Segmented, Toggle } from "@/components/ui/Controls";
+import { PageHeader } from "@/components/ui/Display";
 import { EyeMorph } from "@/components/ui/EyeMorph";
 import { IconArrowRight, IconBulb, IconFlag, IconVolume } from "@/components/ui/Icons";
 import { announce } from "@/lib/a11y/announcer";
@@ -61,8 +63,8 @@ function filtersFor(prefs: Prefs, rating: number): PuzzleFilters {
 }
 
 export function PuzzleTrainer() {
-  const pieceSet = useSettings((s) => s.pieceSet);
   const peekSeconds = useSettings((s) => s.peekSeconds);
+  const motionPref = useSettings((s) => s.motion);
   const goal = usePuzzlePrefs((s) => s.goal);
   const difficulty = usePuzzlePrefs((s) => s.difficulty);
   const maxPieces = usePuzzlePrefs((s) => s.maxPieces);
@@ -293,34 +295,34 @@ export function PuzzleTrainer() {
     void speak(`White: ${speakSide(ps, "w")}. Black: ${speakSide(ps, "b")}. ${intro}${goalText(puzzle, solver)}`, { force: true });
   };
 
+  const still = motionPref === "reduced";
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
+    <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
       <Confetti fire={confetti} />
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="rise-in">
-          <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
-            Blindfold <span className="italic text-ember-300">puzzles</span>
-          </h1>
-          <p className="mt-2 max-w-xl text-ivory-300">The position is only described in words. Build it in your head, then find the move.</p>
-        </div>
-        <div className="rounded-2xl bg-night-850/70 px-4 py-2.5 text-right ring-1 ring-inset ring-ivory-100/[0.07]">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ivory-500">Puzzle rating</div>
-          <div className="text-2xl font-semibold tracking-tight text-ivory-50" data-testid="puzzle-rating">
-            <AnimatedNumber value={rating} />
-            {delta !== null ? (
-              <span className={cn("ml-1.5 font-mono text-sm", delta >= 0 ? "text-jade-300" : "text-coral-300")}>
-                {delta >= 0 ? "+" : ""}
-                {delta}
-              </span>
-            ) : null}
+      <PageHeader
+        thin="Blindfold"
+        bold="puzzles"
+        lead="The position is only described in words. Build it in your head, then find the move."
+        actions={
+          <div className="glass-panel rounded-panel px-5 py-3 text-right">
+            <div className="text-small text-muted">Puzzle rating</div>
+            <div className="mt-1 font-display text-[2rem] font-bold leading-none tabular text-ink" data-testid="puzzle-rating">
+              <AnimatedNumber value={rating} />
+              {delta !== null ? (
+                <span className={cn("ml-2 font-sans text-small font-semibold", delta >= 0 ? "text-good" : "text-bad")}>
+                  {delta >= 0 ? "+" : ""}
+                  {delta}
+                </span>
+              ) : null}
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
-      <Card className="mt-6 grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
+      <Panel className="mt-8 grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
         <div>
-          <SectionLabel>Goal</SectionLabel>
+          <FieldLabel>Goal</FieldLabel>
           <Segmented<PuzzleGoal | "any">
             label="Goal"
             size="sm"
@@ -334,7 +336,7 @@ export function PuzzleTrainer() {
           />
         </div>
         <div>
-          <SectionLabel>Difficulty</SectionLabel>
+          <FieldLabel>Difficulty</FieldLabel>
           <Segmented<Difficulty>
             label="Difficulty"
             size="sm"
@@ -343,14 +345,14 @@ export function PuzzleTrainer() {
             options={[
               { value: "auto", label: "Auto", hint: "Near your puzzle rating" },
               { value: "easy", label: "Easy" },
-              { value: "medium", label: "Med" },
+              { value: "medium", label: "Med", ariaLabel: "Medium" },
               { value: "hard", label: "Hard" },
               { value: "expert", label: "Expert" },
             ]}
           />
         </div>
-        <div>
-          <SectionLabel>Max pieces</SectionLabel>
+        <div className="sm:col-span-2 lg:col-span-1">
+          <FieldLabel>Most pieces</FieldLabel>
           <Segmented<number>
             label="Maximum pieces"
             size="sm"
@@ -364,52 +366,56 @@ export function PuzzleTrainer() {
             ]}
           />
         </div>
-      </Card>
+      </Panel>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:items-start">
         {/* Text side */}
-        <Card className="p-5 sm:p-6">
+        <Panel className="p-5 sm:p-6">
           {status === "loading" || !puzzle || !chess ? (
             status === "empty" ? (
-              <p className="text-ivory-300">No puzzles match these filters. Try widening them.</p>
+              <div className="py-6 text-center">
+                <h2 className="display text-display-md">No puzzles here</h2>
+                <p className="mt-2 text-fg">No puzzles match these filters. Widen the goal, difficulty or piece count.</p>
+              </div>
             ) : (
               <div className="space-y-4" aria-busy="true">
-                <div className="skeleton h-6 w-40" />
-                <div className="skeleton h-24 w-full" />
-                <div className="skeleton h-12 w-full" />
+                <div className="skeleton h-6 w-40 rounded-full" />
+                <div className="skeleton h-8 w-3/4" />
+                <div className="skeleton h-28 w-full" />
+                <div className="skeleton h-12 w-full rounded-full" />
               </div>
             )
           ) : (
             <div data-testid="puzzle" data-puzzle-id={puzzle.id}>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="ember">{GOAL_LABELS[puzzle.goal]}</Badge>
+                <Badge tone="ink">{GOAL_LABELS[puzzle.goal]}</Badge>
                 <Badge>Rated {puzzle.rating}</Badge>
                 <Badge>{puzzle.pieces} pieces</Badge>
-                {source === "bundled" ? <Badge tone="moon">Offline set</Badge> : null}
+                {source === "bundled" ? <Badge>Offline set</Badge> : null}
               </div>
-              <h2 className="mt-4 font-display text-2xl font-semibold text-ivory-50" data-testid="puzzle-goal">
+              <h2 className="mt-4 text-[1.5rem] font-semibold leading-snug text-ink" data-testid="puzzle-goal">
                 {goalText(puzzle, solver)}
               </h2>
 
-              <div className="mt-4 space-y-3" data-testid="puzzle-position">
+              <dl className="mt-5 space-y-2" data-testid="puzzle-position">
                 {(["w", "b"] as const).map((c) => (
-                  <div key={c} className="flex gap-3 rounded-2xl bg-night-850/80 p-3.5 ring-1 ring-inset ring-ivory-100/[0.06]">
-                    <PieceGlyph set={pieceSet} color={c} type="k" className="h-8 w-8 shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ivory-500">{c === "w" ? "White" : "Black"}</div>
-                      <div className="mt-0.5 font-mono text-[15px] leading-relaxed text-ivory-50">{describeSide(pieces, c) || "—"}</div>
-                    </div>
+                  <div key={c} className="glass-well relative min-h-[4.25rem] rounded-control py-3.5 pl-[4.125rem] pr-3.5">
+                    <dt className="text-small font-semibold text-ink">
+                      <PieceImage color={c} type="k" className="absolute left-3.5 top-3.5 h-10 w-10" />
+                      {c === "w" ? "White" : "Black"}
+                    </dt>
+                    <dd className="mt-0.5 text-[0.9375rem] leading-relaxed text-fg">{describeSide(pieces, c) || "Nothing"}</dd>
                   </div>
                 ))}
-              </div>
-              <p className="mt-3 text-sm text-ivory-300">
+              </dl>
+              <p className="mt-3 text-small text-muted">
                 {prefs.applySetup ? (
                   <>
-                    {solver === "w" ? "Black" : "White"} just played <span className="font-mono text-ember-200">{setupMove?.san}</span> (already shown above).
+                    {solver === "w" ? "Black" : "White"} just played <strong className="font-semibold text-ink">{setupMove?.san}</strong> (already shown above).
                   </>
                 ) : (
                   <>
-                    First, {solver === "w" ? "Black" : "White"} plays <span className="font-mono text-ember-200">{setupMove?.san}</span> — apply it in your head.
+                    First, {solver === "w" ? "Black" : "White"} plays <strong className="font-semibold text-ink">{setupMove?.san}</strong>: apply it in your head.
                   </>
                 )}
               </p>
@@ -421,7 +427,7 @@ export function PuzzleTrainer() {
                       key={i}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={cn("rounded-lg px-2 py-0.5 font-mono text-sm", e.by === "you" ? "bg-jade-400/15 text-jade-200" : "bg-night-700 text-ivory-200")}
+                      className={cn("rounded-full px-3 py-0.5 text-small font-semibold tabular", e.by === "you" ? "bg-ink text-on-ink" : "glass-well text-ink")}
                     >
                       {e.san}
                     </motion.li>
@@ -435,8 +441,8 @@ export function PuzzleTrainer() {
                   chess={chess}
                   disabled={status !== "solving" || replying}
                   hints="off"
-                  placeholder="Your move in SAN — e.g. Qh7#"
-                  disabledPlaceholder={replying ? "Opponent replying…" : status === "solved" ? "Solved — press Enter for the next one" : "Puzzle over — press Enter for the next one"}
+                  placeholder="Your move in SAN, e.g. Qh7#"
+                  disabledPlaceholder={replying ? "Opponent replying…" : status === "solved" ? "Solved. Press Enter for the next one" : "Puzzle over. Press Enter for the next one"}
                   onMove={onMove}
                   onIllegal={() => {
                     setMistakes((m) => m + 1);
@@ -451,7 +457,7 @@ export function PuzzleTrainer() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className={cn("text-sm", message.tone === "good" ? "text-jade-300" : message.tone === "bad" ? "text-coral-300" : "text-moon-200")}
+                    className={cn("px-1 text-small font-semibold", message.tone === "good" ? "text-good" : message.tone === "bad" ? "text-bad" : "text-ink")}
                     data-testid="puzzle-message"
                   >
                     {message.text}
@@ -461,12 +467,12 @@ export function PuzzleTrainer() {
 
               <div className="mt-5 flex flex-wrap gap-2">
                 {done ? (
-                  <Button variant="primary" onClick={nextOne} icon={<IconArrowRight size={17} />} data-testid="puzzle-next">
+                  <Button variant="primary" onClick={nextOne} trailingIcon={<IconArrowRight size={17} />} data-testid="puzzle-next">
                     Next puzzle
                   </Button>
                 ) : (
                   <>
-                    <Button variant="moon" onClick={peek} disabled={peeking} icon={<EyeMorph closed={!peeking} size={18} />} data-testid="puzzle-peek">
+                    <Button variant="primary" onClick={peek} disabled={peeking} icon={<EyeMorph closed={!peeking} size={18} />} data-testid="puzzle-peek">
                       Peek
                     </Button>
                     <Button onClick={showHint} disabled={!!hint || replying} icon={<IconBulb size={17} />} data-testid="puzzle-hint">
@@ -481,7 +487,7 @@ export function PuzzleTrainer() {
                   </>
                 )}
               </div>
-              <div className="mt-5 border-t border-ivory-100/[0.06] pt-4">
+              <div className="mt-5 border-t border-line pt-3">
                 <Toggle
                   checked={!prefs.applySetup}
                   onChange={(v) => setPrefs({ applySetup: !v })}
@@ -491,18 +497,19 @@ export function PuzzleTrainer() {
               </div>
             </div>
           )}
-        </Card>
+        </Panel>
 
-        {/* Board side: hidden until a peek or the end. */}
+        {/* Board side: a melted pool until a peek or the end. */}
         <div className="relative">
           <AnimatePresence mode="wait" initial={false}>
             {chess && reveal ? (
               <motion.div
                 key="board"
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 260, damping: 26 }}
+                initial={{ opacity: 0, y: 24, scale: 0.96, filter: "blur(8px)" }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: 16, scale: 0.98, filter: "blur(6px)" }}
+                transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                className="relative"
               >
                 <Board
                   fen={chess.fen()}
@@ -518,10 +525,10 @@ export function PuzzleTrainer() {
                     initial={{ opacity: 0, scale: 0.6 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.3 }}
-                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-night-950/80 px-6 py-3 font-display text-3xl font-semibold text-jade-300 ring-1 ring-jade-400/40 backdrop-blur"
+                    className="pill-primary pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-7 py-3 font-display text-[2rem] font-bold uppercase leading-none"
                     data-testid="puzzle-solved"
                   >
-                    Solved!
+                    Solved
                   </motion.div>
                 ) : null}
               </motion.div>
@@ -531,12 +538,16 @@ export function PuzzleTrainer() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex aspect-square w-full flex-col items-center justify-center gap-4 rounded-[10px] bg-night-900 text-center ring-1 ring-ivory-100/[0.06]"
+                className="relative flex aspect-square w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-[0.875rem] text-center shadow-[0_0_0_1px_var(--board-edge),0_34px_60px_-32px_rgb(0_0_0/0.5)]"
+                style={{ background: "var(--sq-light)" }}
               >
-                <span className="text-moon-300/80">
-                  <EyeMorph closed size={48} />
+                <MeltSurface melt={1} still={still} ownSquares />
+                {/* A light veil so the melted board still reads through it behind the text. */}
+                <div className="absolute inset-0 bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--studio-hi)_72%,transparent),color-mix(in_oklab,var(--studio-hi)_30%,transparent))] backdrop-blur-[5px]" />
+                <span className="relative text-ink/70">
+                  <EyeMorph closed size={44} />
                 </span>
-                <p className="max-w-[16rem] text-sm text-ivory-400">The board stays hidden. Peek if you must — it&apos;s counted.</p>
+                <p className="relative max-w-[16rem] text-[0.9375rem] text-fg">The board stays hidden. Peek if you must: it is counted.</p>
               </motion.div>
             )}
           </AnimatePresence>

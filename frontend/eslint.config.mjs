@@ -13,6 +13,17 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // three.js / React Three Fiber code mutates scene objects, materials and uniforms imperatively (in
+    // effects and useFrame) by design; the React Compiler's immutability rule doesn't model that.
+    files: ["src/three/**/*.{ts,tsx}", "src/components/home/HeroScene3D.tsx"],
+    rules: { "react-hooks/immutability": "off" },
+  },
+  {
+    // Pre-rendered WebP frames with explicit sizes and srcset: next/image would only re-encode them.
+    files: ["src/components/home/**/*.tsx", "src/app/not-found.tsx"],
+    rules: { "@next/next/no-img-element": "off" },
+  },
   globalIgnores([
     ".next/**",
     "out/**",

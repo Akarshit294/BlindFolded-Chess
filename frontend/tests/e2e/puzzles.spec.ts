@@ -50,9 +50,17 @@ test.describe("puzzles", () => {
     const input = page.getByTestId("move-input");
     await input.fill(first.moves[1]!);
     await input.press("Enter");
-    // While the opponent replies, the solver can't act...
-    await expect(input).toBeDisabled();
-    await expect(page.getByTestId("puzzle-giveup")).toBeDisabled();
+    // While the opponent replies (half a second), the solver can't act. Checked inside the page, every frame, so
+    // a busy machine can't miss the window between two separate assertions.
+    await page.waitForFunction(
+      () => {
+        const i = document.querySelector<HTMLInputElement>('[data-testid="move-input"]');
+        const g = document.querySelector<HTMLButtonElement>('[data-testid="puzzle-giveup"]');
+        return !!i?.disabled && !!g?.disabled;
+      },
+      null,
+      { polling: "raf", timeout: 5_000 },
+    );
     // ...and switching puzzles drops the pending reply.
     await page.getByRole("radio", { name: "M3" }).click();
     await expect(card).not.toHaveAttribute("data-puzzle-id", first.id);

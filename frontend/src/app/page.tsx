@@ -1,10 +1,10 @@
-import { Landing } from "@/components/landing/Landing";
+import { Home } from "@/components/home/Home";
 import { PageShell } from "@/components/layout/PageShell";
 
-export default function Home() {
+export default function HomePage() {
   return (
     <PageShell>
-      <Landing />
+      <Home />
     </PageShell>
   );
 }

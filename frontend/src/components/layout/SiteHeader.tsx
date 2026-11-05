@@ -2,127 +2,135 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { EyeMorph } from "@/components/ui/EyeMorph";
-import { IconBook, IconChart, IconKnight, IconPuzzle, IconSettings, IconTarget } from "@/components/ui/Icons";
+import { useEffect, useRef, useState } from "react";
+import { IconMenu, IconSettings } from "@/components/ui/Icons";
+import { Modal } from "@/components/ui/Modal";
+import { PawnMark } from "@/components/ui/PawnMark";
 import { cn } from "@/lib/utils/cn";
+import { isActive, NAV } from "./nav";
 
-export const NAV = [
-  { href: "/play", label: "Play", icon: IconKnight },
-  { href: "/train", label: "Train", icon: IconTarget },
-  { href: "/puzzles", label: "Puzzles", icon: IconPuzzle },
-  { href: "/stats", label: "Stats", icon: IconChart },
-  { href: "/learn", label: "Learn", icon: IconBook },
-] as const;
-
-function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-export function Logo() {
-  const [hover, setHover] = useState(false);
+export function Logo({ className }: { className?: string }) {
   return (
     <Link
       href="/"
-      className="group flex items-center gap-2.5 rounded-xl px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-moon-300"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onFocus={() => setHover(true)}
-      onBlur={() => setHover(false)}
-      aria-label="Blindfold — home"
+      aria-label="Blindfold Chess, home"
+      className={cn(
+        "group flex shrink-0 items-center gap-2.5 rounded-full py-1 pr-2 text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]",
+        className,
+      )}
     >
-      <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-night-600 to-night-800 text-ivory-50 ring-1 ring-ivory-100/10 shadow-[0_8px_20px_-10px_rgba(124,133,223,0.7)]">
-        <EyeMorph closed={hover} size={22} />
-      </span>
-      <span className="font-display text-[19px] font-semibold tracking-tight text-ivory-50">
-        Blindfold<span className="text-ember-400">.</span>
-      </span>
+      <PawnMark size={30} className="transition-transform duration-500 ease-out group-hover:-rotate-6" />
+      <span className="font-display text-[1.375rem] font-bold uppercase leading-none tracking-[0.05em]">Blindfold</span>
     </Link>
   );
 }
 
+const LINK =
+  "relative rounded-full px-4 py-2 text-[0.9375rem] font-semibold outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]";
+
 export function SiteHeader() {
   const pathname = usePathname();
+  const [menu, setMenu] = useState(false);
+  const [stuck, setStuck] = useState(false);
+  const sentinel = useRef<HTMLDivElement>(null);
+
+  // Once the page scrolls, the header lifts into a floating glass bar.
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setStuck(!e!.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Close the menu when the route changes.
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
+    setMenu(false);
+  }
+
+  const settingsActive = isActive(pathname, "/settings");
+
   return (
     <>
-      <header
-        className="sticky top-0 z-50 border-b border-ivory-100/[0.06] bg-night-950/70 backdrop-blur-xl"
-        style={{ viewTransitionName: "site-header" }}
-      >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div ref={sentinel} aria-hidden="true" className="h-px" />
+      <header className="sticky top-2 z-40 -mt-px px-2 sm:top-3 sm:px-3">
+        {/* The transition name sits on the glass bar itself: on an ancestor it would make that ancestor a backdrop
+            root, and the bar's blur would see nothing behind it. */}
+        <div
+          style={{ viewTransitionName: "site-header" }}
+          className={cn(
+            "mx-auto flex h-[var(--header-h)] items-center justify-between gap-4 rounded-full px-3 transition-[background,box-shadow,border-color,backdrop-filter] duration-300 sm:px-5 lg:px-6",
+            stuck ? "glass-float" : "border border-transparent",
+          )}
+        >
           <Logo />
           <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
             {NAV.map((item) => {
               const active = isActive(pathname, item.href);
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-moon-300",
-                    active ? "text-night-950" : "text-ivory-300 hover:text-ivory-50",
-                  )}
-                >
+                <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={cn(LINK, active ? "text-ink" : "text-muted hover:text-ink")}>
                   {active ? (
-                    <motion.span
-                      layoutId="nav-pill"
-                      className="absolute inset-0 -z-10 rounded-full bg-gradient-to-b from-ivory-50 to-ivory-200"
-                      transition={{ type: "spring", stiffness: 480, damping: 36 }}
-                    />
+                    <motion.span layoutId="nav-pill" className="pill-secondary absolute inset-0 -z-10 rounded-full" transition={{ type: "spring", stiffness: 480, damping: 38 }} />
                   ) : null}
                   {item.label}
                 </Link>
               );
             })}
           </nav>
-          <Link
-            href="/settings"
-            aria-label="Settings"
-            aria-current={isActive(pathname, "/settings") ? "page" : undefined}
-            className={cn(
-              "group inline-flex h-10 w-10 items-center justify-center rounded-xl text-ivory-300 outline-none transition-colors hover:bg-ivory-100/[0.07] hover:text-ivory-50 focus-visible:ring-2 focus-visible:ring-moon-300",
-              isActive(pathname, "/settings") && "bg-ivory-100/[0.08] text-ivory-50",
-            )}
-          >
-            <IconSettings className="transition-transform duration-500 group-hover:rotate-90" />
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              aria-current={settingsActive ? "page" : undefined}
+              className={cn(
+                "group relative inline-flex h-10 w-10 items-center justify-center rounded-full text-ink outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]",
+                settingsActive ? "pill-secondary" : "hover:bg-ink/[0.07]",
+              )}
+            >
+              <IconSettings size={20} className="transition-transform duration-700 ease-out group-hover:rotate-90" />
+            </Link>
+            <button
+              type="button"
+              aria-label="Menu"
+              aria-haspopup="dialog"
+              aria-expanded={menu}
+              onClick={() => setMenu(true)}
+              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-ink outline-none transition-colors hover:bg-ink/[0.07] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] md:hidden"
+            >
+              <IconMenu size={21} />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Mobile tab bar */}
-      <nav
-        aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-ivory-100/[0.07] bg-night-950/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
-      >
-        <div className="mx-auto grid max-w-md grid-cols-5">
-          {NAV.map((item) => {
-            const active = isActive(pathname, item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium outline-none focus-visible:bg-ivory-100/5",
-                  active ? "text-ember-300" : "text-ivory-400",
-                )}
-              >
-                {active ? (
-                  <motion.span
-                    layoutId="tab-dot"
-                    className="absolute top-0 h-0.5 w-8 rounded-full bg-ember-400"
-                    transition={{ type: "spring", stiffness: 480, damping: 36 }}
-                  />
-                ) : null}
-                <Icon size={21} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      <Modal open={menu} onClose={() => setMenu(false)} title="Menu" closeButton className="sm:max-w-sm">
+        <nav aria-label="Menu">
+          <ul className="grid gap-1">
+            {[...NAV, { href: "/settings", label: "Settings", icon: IconSettings }, { href: "/credits", label: "Credits", icon: null }].map((item) => {
+              const active = isActive(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setMenu(false)}
+                    className={cn(
+                      "flex h-12 items-center gap-3 rounded-full px-4 text-base font-semibold outline-none transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus)]",
+                      active ? "pill-secondary text-ink" : "text-ink hover:bg-ink/[0.06]",
+                    )}
+                  >
+                    {Icon ? <Icon size={20} /> : <span className="w-5" aria-hidden="true" />}
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </Modal>
     </>
   );
 }

@@ -4,11 +4,11 @@ import { checkBackend, useBackend } from "@/lib/api/client";
 import { cn } from "@/lib/utils/cn";
 
 const COPY = {
-  disabled: { text: "Offline mode · built-in data", dot: "bg-ember-400", title: "No backend configured — puzzles, drills and analysis run in your browser." },
-  checking: { text: "Connecting…", dot: "bg-moon-400 animate-pulse", title: "Checking the puzzle server" },
-  waking: { text: "Waking the server…", dot: "bg-moon-400 animate-pulse", title: "The free server sleeps when idle. Everything works meanwhile." },
-  online: { text: "Server online", dot: "bg-jade-400", title: "Connected to the puzzle & analysis server" },
-  offline: { text: "Offline mode · built-in data", dot: "bg-ember-400", title: "Server unreachable — using built-in puzzles and in-browser analysis. Click to retry." },
+  disabled: { text: "Offline mode, built-in data", dot: "bg-muted", title: "No backend configured. Puzzles, drills and analysis run in your browser." },
+  checking: { text: "Connecting…", dot: "bg-muted animate-pulse", title: "Checking the puzzle server" },
+  waking: { text: "Waking the server…", dot: "bg-muted animate-pulse", title: "The free server sleeps when idle. Everything works meanwhile." },
+  online: { text: "Server online", dot: "bg-good", title: "Connected to the puzzle and analysis server" },
+  offline: { text: "Offline mode, built-in data", dot: "bg-muted", title: "Server unreachable: using built-in puzzles and in-browser analysis. Click to retry." },
 } as const;
 
 /** Small status indicator: the app never depends on the backend, this just says what's used. */
@@ -23,8 +23,8 @@ export function BackendPill({ className }: { className?: string }) {
       data-testid="backend-status"
       data-state={state}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full bg-ivory-100/[0.04] px-3 py-1 text-[11px] font-medium text-ivory-400 ring-1 ring-inset ring-ivory-100/[0.07] outline-none transition-colors hover:text-ivory-200 focus-visible:ring-moon-300",
-        state !== "offline" && "cursor-default",
+        "glass-well inline-flex h-8 items-center gap-2 rounded-full px-3 text-caption font-semibold text-muted outline-none transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-[var(--focus)]",
+        state === "offline" ? "cursor-pointer" : "cursor-default",
         className,
       )}
     >

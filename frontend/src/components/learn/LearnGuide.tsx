@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LinkButton } from "@/components/ui/Button";
-import { IconArrowRight } from "@/components/ui/Icons";
+import { DisplayTitle, PageHeader } from "@/components/ui/Display";
 
 const SECTIONS = [
   { id: "why", title: "Why train blindfold?" },
@@ -17,23 +17,21 @@ function Section({ id, title, children }: { id: string; title: string; children:
   return (
     <motion.section
       id={id}
-      className="scroll-mt-24"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
     >
-      <h2 className="text-3xl font-semibold text-ivory-50">{title}</h2>
-      <div className="prose-bf mt-4 space-y-4 text-[17px] leading-relaxed text-ivory-300">{children}</div>
+      <DisplayTitle as="h2" size="md" bold={title} />
+      <div className="mt-5 space-y-4 text-[1.0625rem] leading-[1.75] text-fg">{children}</div>
     </motion.section>
   );
 }
 
 function DrillLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-1 rounded-md bg-ember-400/10 px-1.5 font-medium text-ember-200 underline-offset-4 hover:underline">
+    <Link href={href} className="pill-secondary inline-flex items-center rounded-full px-3 py-0.5 text-small font-semibold text-ink transition-transform hover:-translate-y-px">
       {children}
-      <IconArrowRight size={13} />
     </Link>
   );
 }
@@ -63,22 +61,19 @@ const PLAN = [
 
 export function LearnGuide() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-8 sm:px-6">
-      <header className="rise-in max-w-3xl">
-        <h1 className="text-4xl font-semibold text-ivory-50 sm:text-5xl">
-          How to see <span className="italic text-moon-300">without looking</span>
-        </h1>
-        <p className="mt-4 text-lg leading-relaxed text-ivory-300">
-          A short guide to blindfold chess: what it trains, how the skill is built, a plan for your first month, and a little of its long history.
-        </p>
-      </header>
+    <div className="px-5 pb-10 pt-6 sm:px-8 lg:px-12 lg:pt-10">
+      <PageHeader
+        thin="See"
+        bold="without looking"
+        lead="A short guide to blindfold chess: what it trains, how the skill is built, a plan for your first month, and a little of its long history."
+      />
 
       <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="On this page" className="hidden lg:block">
-          <ol className="sticky top-24 space-y-1 border-l border-ivory-100/10 text-sm">
+          <ol className="sticky top-28 space-y-1 border-l border-line text-small">
             {SECTIONS.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="-ml-px block border-l border-transparent py-1.5 pl-4 text-ivory-400 transition-colors hover:border-ember-400 hover:text-ivory-100">
+                <a href={`#${s.id}`} className="-ml-px block border-l-2 border-transparent py-1.5 pl-4 font-semibold text-muted transition-colors hover:border-ink hover:text-ink">
                   {s.title}
                 </a>
               </li>
@@ -102,28 +97,28 @@ export function LearnGuide() {
 
           <Section id="skills" title="How visualisation is built">
             <p>Blindfold skill is not one ability but a stack of small ones. Work on them roughly in this order:</p>
-            <ol className="list-decimal space-y-3 pl-6 marker:text-ember-300">
+            <ol className="list-decimal space-y-3 pl-6 marker:font-semibold marker:text-ink">
               <li>
-                <strong className="text-ivory-50">Know the map.</strong> Every square has a name and a colour. Strong blindfold players answer “what colour is
+                <strong className="font-semibold text-ink">Know the map.</strong> Every square has a name and a colour. Strong blindfold players answer “what colour is
                 f6?” instantly, from either side of the board. <DrillLink href="/train/square-color">Square colour</DrillLink>{" "}
                 <DrillLink href="/train/coordinates">Coordinates</DrillLink>
               </li>
               <li>
-                <strong className="text-ivory-50">Know the lines.</strong> Bishops, rooks and queens travel on diagonals, ranks and files. If you can list the
+                <strong className="font-semibold text-ink">Know the lines.</strong> Bishops, rooks and queens travel on diagonals, ranks and files. If you can list the
                 squares between b2 and g7 without looking, long-range pieces stop hiding. <DrillLink href="/train/lines">Diagonals &amp; lines</DrillLink>
               </li>
               <li>
-                <strong className="text-ivory-50">Know the knight.</strong> The knight is the piece people lose track of most. Practise routes until you
+                <strong className="font-semibold text-ink">Know the knight.</strong> The knight is the piece people lose track of most. Practise routes until you
                 can see that a knight on b1 needs three moves to reach f7.{" "}
                 <DrillLink href="/train/knight-routes">Knight routes</DrillLink>
               </li>
               <li>
-                <strong className="text-ivory-50">Track changes, not snapshots.</strong> Experienced blindfold players rarely describe a photographic board.
+                <strong className="font-semibold text-ink">Track changes, not snapshots.</strong> Experienced blindfold players rarely describe a photographic board.
                 They remember structure — pawn chains, where the kings live, what is attacked — and update it move by move.{" "}
                 <DrillLink href="/train/where-piece">Where&apos;s the piece?</DrillLink>
               </li>
               <li>
-                <strong className="text-ivory-50">Remember in chunks.</strong> A castled king with its pawns is one idea, not four pieces. Grouping pieces
+                <strong className="font-semibold text-ink">Remember in chunks.</strong> A castled king with its pawns is one idea, not four pieces. Grouping pieces
                 into familiar patterns is how masters recall whole positions. <DrillLink href="/train/memory">Memory</DrillLink>
               </li>
             </ol>
@@ -140,9 +135,9 @@ export function LearnGuide() {
                 ["Start from what you know.", "Openings you play often are easier to follow; strange positions are harder to hold."],
               ].map(([h, t]) => (
                 <li key={h} className="flex gap-3">
-                  <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ember-400" aria-hidden="true" />
+                  <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ink" aria-hidden="true" />
                   <span>
-                    <strong className="text-ivory-50">{h}</strong> {t}
+                    <strong className="font-semibold text-ink">{h}</strong> {t}
                   </span>
                 </li>
               ))}
@@ -162,18 +157,16 @@ export function LearnGuide() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08, duration: 0.45 }}
-                  className="surface rounded-2xl p-4"
+                  className="glass-panel rounded-panel p-5"
                 >
                   <div className="flex items-baseline justify-between">
-                    <span className="font-semibold text-ivory-50">{w.week}</span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ember-300">{w.focus}</span>
+                    <span className="font-display text-[1.375rem] font-bold uppercase leading-none text-ink">{w.week}</span>
+                    <span className="text-small font-semibold text-muted">{w.focus}</span>
                   </div>
-                  <ul className="mt-3 space-y-1.5 text-[15px] text-ivory-300">
+                  <ul className="mt-3 space-y-1.5 text-[0.9375rem] text-fg">
                     {w.daily.map((d) => (
                       <li key={d} className="flex gap-2">
-                        <span className="text-ivory-500" aria-hidden="true">
-                          ·
-                        </span>
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-muted" aria-hidden="true" />
                         {d}
                       </li>
                     ))}
@@ -207,22 +200,22 @@ export function LearnGuide() {
               Scientists have been curious too. Alfred Binet began studying blindfold players in 1893 and concluded that they rely on abstract, organised
               knowledge of the position rather than a photographic image — the same insight behind the drills on this site.
             </p>
-            <p className="text-[15px] text-ivory-400">
+            <p className="text-[0.9375rem] text-muted">
               Further reading: Eliot Hearst and John Knott, <em>Blindfold Chess: History, Psychology, Techniques, Champions, World Records, and Important
               Games</em> (McFarland, 2009).
             </p>
           </Section>
 
-          <div className="surface flex flex-col items-start justify-between gap-4 rounded-3xl p-6 sm:flex-row sm:items-center">
+          <div className="glass-panel flex flex-col items-start justify-between gap-5 rounded-panel p-6 sm:flex-row sm:items-center">
             <div>
-              <div className="text-xl font-semibold text-ivory-50">Ready for day one?</div>
-              <div className="mt-1 text-ivory-400">Start with five minutes of square colours, then a ghost-board game.</div>
+              <div className="font-display text-[1.75rem] font-bold uppercase leading-none text-ink">Ready for day one?</div>
+              <div className="mt-2 text-fg">Start with five minutes of square colours, then a ghost-board game.</div>
             </div>
-            <div className="flex gap-2">
-              <LinkButton href="/train/square-color" variant="primary">
+            <div className="flex flex-wrap gap-2">
+              <LinkButton href="/train/square-color?go=1" variant="primary">
                 Square colours
               </LinkButton>
-              <LinkButton href="/play">Play</LinkButton>
+              <LinkButton href="/play?new=1&mode=ghost">Ghost game</LinkButton>
             </div>
           </div>
         </article>

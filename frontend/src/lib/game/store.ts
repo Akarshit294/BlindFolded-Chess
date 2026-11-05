@@ -8,9 +8,10 @@ import { replay, uciToMove } from "@/lib/game/rules";
 import { newId } from "@/lib/storage/db";
 import type { GameAnalysisSummary, GameConfig, GameRecord, GameResult } from "@/lib/storage/types";
 
+/** First-visit defaults: White, a friendly opponent (Candle, about 700) and Ghost mode. */
 export const DEFAULT_CONFIG: GameConfig = {
   playerColor: "w",
-  levelId: 3,
+  levelId: 2,
   visibility: "ghost",
   mode: "practice",
   timeControl: null,
@@ -19,6 +20,23 @@ export const DEFAULT_CONFIG: GameConfig = {
 };
 
 export type ColorChoice = "w" | "b" | "random";
+export type Setup = GameConfig & { colorChoice: ColorChoice };
+
+/**
+ * The game config a setup produces: Random picks a color, full-board games are always practice, and rated games
+ * allow at most three peeks.
+ */
+export function configFromSetup(setup: Setup, rand: () => number = Math.random): GameConfig {
+  const playerColor = setup.colorChoice === "random" ? (rand() < 0.5 ? "w" : "b") : setup.colorChoice;
+  const mode = setup.visibility === "full" ? "practice" : setup.mode;
+  const peeks = mode === "rated" ? Math.min(setup.peeks < 0 ? 3 : setup.peeks, 3) : setup.peeks;
+  return { playerColor, levelId: setup.levelId, visibility: setup.visibility, mode, timeControl: setup.timeControl, peeks, moveList: setup.moveList };
+}
+
+/** A game worth continuing: started, not finished. */
+export function isResumable(game: GameRecord | null): game is GameRecord {
+  return !!game && !game.result && game.moves.length > 0;
+}
 
 type GameState = {
   game: GameRecord | null;
@@ -26,10 +44,12 @@ type GameState = {
   turnStartedAt: number | null;
   /** Time already charged to the side to move during this turn, before a pause. */
   turnBanked: number;
-  setup: GameConfig & { colorChoice: ColorChoice };
+  setup: Setup;
   hydrated: boolean;
-  setSetup: (patch: Partial<GameConfig & { colorChoice: ColorChoice }>) => void;
+  setSetup: (patch: Partial<Setup>) => void;
   start: (config: GameConfig) => GameRecord;
+  /** Applies an optional setup change (remembered) and starts a game from the setup. */
+  startFromSetup: (patch?: Partial<Setup>) => GameRecord;
   /** Records a move if it is legal in the current position; returns whether it was. */
   applyMove: (uci: string, now?: number) => boolean;
   end: (result: GameResult) => void;
@@ -57,6 +77,10 @@ export const useGame = create<GameState>()(
       hydrated: false,
       setup: { ...DEFAULT_CONFIG, colorChoice: "w" },
       setSetup: (patch) => set((s) => ({ setup: { ...s.setup, ...patch } })),
+      startFromSetup: (patch) => {
+        if (patch) get().setSetup(patch);
+        return get().start(configFromSetup(get().setup));
+      },
       start: (config) => {
         const now = Date.now();
         const game: GameRecord = {

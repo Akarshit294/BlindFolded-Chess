@@ -7,6 +7,7 @@ import type { DrillMeta } from "./DrillRunner";
 
 export const SQUARE_COLOR_META: DrillMeta = {
   id: "square-color",
+  display: ["Square", "colour"],
   title: "Square colour",
   tagline: "The foundation of board vision: know the colour of any square instantly, without looking.",
   levels: [
@@ -22,6 +23,7 @@ export const SQUARE_COLOR_META: DrillMeta = {
 
 export const COORDINATES_META: DrillMeta = {
   id: "coordinates",
+  display: ["Board", "coordinates"],
   title: "Coordinates",
   tagline: "Name the highlighted square, or find the named one — from both sides of the board, without labels.",
   levels: [
@@ -38,6 +40,7 @@ export const COORDINATES_META: DrillMeta = {
 
 export const KNIGHT_META: DrillMeta = {
   id: "knight-routes",
+  display: ["Knight", "routes"],
   title: "Knight routes",
   tagline: "Find the shortest knight path between two squares in your head. Type the squares the knight lands on.",
   levels: [
@@ -53,6 +56,7 @@ export const KNIGHT_META: DrillMeta = {
 
 export const LINES_META: DrillMeta = {
   id: "lines",
+  display: ["Diagonals", "and lines"],
   title: "Diagonals & lines",
   tagline: "See which squares share diagonals, ranks and files — the highways bishops, rooks and queens travel.",
   levels: [
@@ -68,6 +72,7 @@ export const LINES_META: DrillMeta = {
 
 export const WHERE_META: DrillMeta = {
   id: "where-piece",
+  display: ["Where's the", "piece?"],
   title: "Where's the piece?",
   tagline: "Read (or listen to) a game from the start, play it in your head, then answer questions about the final position.",
   levels: [
@@ -84,6 +89,7 @@ export const WHERE_META: DrillMeta = {
 
 export const MEMORY_META: DrillMeta = {
   id: "memory",
+  display: ["Position", "memory"],
   title: "Memory",
   tagline: "A position appears for a few seconds. Then the board clears — rebuild it piece by piece.",
   levels: [

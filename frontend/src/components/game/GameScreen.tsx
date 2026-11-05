@@ -1,35 +1,42 @@
 "use client";
 import type { Move, PieceSymbol, Square } from "chess.js";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, ViewTransition } from "react";
 import { Board, type BoardHandle, type MoveResult } from "@/components/board/Board";
+import { EvalBar } from "@/components/board/EvalBar";
 import { Confetti } from "@/components/fx/Confetti";
 import { Button, IconButton } from "@/components/ui/Button";
-import { Badge, Kbd } from "@/components/ui/Controls";
+import { Badge, Kbd, Panel } from "@/components/ui/Controls";
 import { EyeMorph } from "@/components/ui/EyeMorph";
 import { IconFlag, IconFlip, IconHandshake, IconKeyboard, IconUndo } from "@/components/ui/Icons";
 import { Modal } from "@/components/ui/Modal";
+import { Portal } from "@/components/ui/Portal";
 import { announce } from "@/lib/a11y/announcer";
 import { analyzeGame, summarize, type GameAnalysis } from "@/lib/analysis/analyze";
 import { moveSound, playSound } from "@/lib/audio/sounds";
 import { describePosition, sanToSpeech } from "@/lib/chess/notation";
 import { evaluatePosition, getEngine, pickEngineMove } from "@/lib/engine/engine";
 import { getLevel } from "@/lib/engine/levels";
+import { modeName } from "@/lib/game/modes";
 import { canWinOnTime, describeResult, detectResult, kingSquare, replay, scoreFor, uciToMove } from "@/lib/game/rules";
-import { peeksLeft, remainingMs, useGame } from "@/lib/game/store";
+import { peeksLeft, remainingMs, useGame, type Setup } from "@/lib/game/store";
 import { useSettings } from "@/lib/settings/store";
 import { speak, stopSpeaking } from "@/lib/speech/tts";
 import { getRatings, saveGame, setRatings } from "@/lib/storage/db";
 import type { GameResult } from "@/lib/storage/types";
 import { updateRating } from "@/lib/stats/rating";
+import { toast } from "@/lib/ui/toast";
+import { useUi } from "@/lib/ui/store";
 import { cn } from "@/lib/utils/cn";
 import { useE2E } from "@/lib/utils/e2e";
-import { BlindPanel, ThinkingDots } from "./BlindPanel";
-import { Clock } from "./Clock";
-import { GameOverPanel } from "./GameOverPanel";
+import { useKeyboardInset, useMediaQuery } from "@/lib/utils/hooks";
+import { BlindStage } from "./BlindStage";
+import { PlayerBar, StatusLine } from "./bits";
 import { MoveInput, type MoveInputHandle } from "./MoveInput";
 import { MoveList } from "./MoveList";
-import { VISIBILITY_MODES } from "./GameSetup";
+import { bestArrow, ReplayControls, useReplay } from "./replay";
+import { ResultPanel, ReviewPanel } from "./ResultPanel";
+import { ModeGlyph, SetupControls } from "./SetupControls";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -43,11 +50,13 @@ function useNow(active: boolean, interval = 100): number {
   return now;
 }
 
-export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
+export function GameScreen() {
   const game = useGame((s) => s.game)!;
   const turnStartedAt = useGame((s) => s.turnStartedAt);
+  const setup = useGame((s) => s.setup);
   const settings = useSettings();
   const e2e = useE2E();
+  const phone = useMediaQuery("(max-width: 1023px)");
 
   const { chess, history } = useMemo(() => replay(game.moves), [game.moves]);
   const fen = chess.fen();
@@ -60,6 +69,8 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   const over = !!game.result;
   const legal = useMemo(() => chess.moves({ verbose: true }), [chess]);
   const lastMove = history[history.length - 1] ?? null;
+  // Before your own first move the setup can still change; the game simply restarts with it.
+  const preGame = !over && game.moves.length - (player === "w" ? 0 : 1) <= 0;
 
   const boardRef = useRef<BoardHandle>(null);
   const inputRef = useRef<MoveInputHandle>(null);
@@ -73,20 +84,28 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   const [analysis, setAnalysis] = useState<GameAnalysis | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  // A refreshed page shows a small "restored" note straight away.
-  const [toast, setToast] = useState<{ text: string; tone: "info" | "bad" | "good" } | null>(() =>
-    game.moves.length > 0 && !game.result ? { text: "Game restored — carry on.", tone: "info" } : null,
-  );
   const [confirmResign, setConfirmResign] = useState(false);
   const [drawPly, setDrawPly] = useState(-99);
   const [helpOpen, setHelpOpen] = useState(false);
   const [orientation, setOrientation] = useState<"white" | "black">(player === "w" ? "white" : "black");
   const finishing = useRef(false);
+  const moreOpen = useUi((s) => s.setupMoreOpen);
 
-  const showToast = useCallback((text: string, tone: "info" | "bad" | "good" = "info") => {
-    setToast({ text, tone });
-    window.setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 2600);
-  }, []);
+  // The review replays on this same board once the game is over.
+  const review = showOver && !!game.result;
+  const r = useReplay(game.moves, analysis, { keyboard: review });
+  // The review opens on the final position.
+  const { go: replayGo, total: replayTotal } = r;
+  useEffect(() => {
+    if (review) replayGo(replayTotal, false);
+  }, [review, replayGo, replayTotal]);
+
+  /* ------------------------------------------------------------------ shell: dock and keyboard */
+  useEffect(() => {
+    useUi.getState().setImmersive(!over);
+    return () => useUi.getState().setImmersive(false);
+  }, [over]);
+  useKeyboardInset(phone && !over);
 
   /* ------------------------------------------------------------------ restore after reload */
   useEffect(() => {
@@ -103,9 +122,9 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
     window.addEventListener("pageshow", onShow);
     inputRef.current?.focusSoft();
     if (game.moves.length === 0) playSound("start");
-    const t = window.setTimeout(() => setToast((cur) => (cur?.text.startsWith("Game restored") ? null : cur)), 2600);
+    // A refreshed page says that the game came back.
+    if (game.moves.length > 0 && !game.result) toast("Game restored. Carry on.");
     return () => {
-      window.clearTimeout(t);
       window.removeEventListener("pagehide", pause);
       window.removeEventListener("pageshow", onShow);
       pause();
@@ -129,7 +148,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
         if (res.outcome === "win") setConfetti((c) => c + 1);
         speak(res.title);
       }, mate ? 900 : 300);
-      window.setTimeout(() => setShowOver(true), mate ? 2800 : 1900);
+      window.setTimeout(() => setShowOver(true), mate ? 2600 : 1600);
 
       // Rated: update the local blindfold rating.
       const g = useGame.getState().game!;
@@ -148,8 +167,8 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   /* Result detection after every move. */
   useEffect(() => {
     if (game.result) return;
-    const r = detectResult(chess);
-    if (r) void finish(r);
+    const res = detectResult(chess);
+    if (res) void finish(res);
   }, [chess, game.result, finish]);
 
   /* ------------------------------------------------------------------ committing moves */
@@ -173,9 +192,9 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
       useGame.getState().illegal();
       playSound("illegal");
       announce(`Illegal move: ${what}`, "assertive");
-      if (rated) showToast("Illegal move — counted.", "bad");
+      if (rated) toast("Illegal move, counted.", { tone: "bad" });
     },
-    [rated, showToast],
+    [rated],
   );
 
   /* ------------------------------------------------------------------ engine turn */
@@ -200,7 +219,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
       } catch {
         if (!cancelled) {
           setEngineError(true);
-          showToast("The engine failed to load. Reload the page to retry.", "bad");
+          toast("The engine failed to load. Reload the page to retry.", { tone: "bad", duration: 6000 });
         }
       }
     })();
@@ -252,14 +271,14 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   const peek = useCallback(() => {
     if (over || peeking || visibility === "full") return;
     if (!useGame.getState().usePeek()) {
-      showToast("No peeks left.", "bad");
+      toast("No peeks left.", { tone: "bad" });
       return;
     }
     playSound("peek");
     setPeeking(true);
     announce(`Peek: ${describePosition(fen)}`);
     window.setTimeout(() => setPeeking(false), settings.peekSeconds * 1000);
-  }, [over, peeking, visibility, showToast, fen, settings.peekSeconds]);
+  }, [over, peeking, visibility, fen, settings.peekSeconds]);
 
   const takebackPlies = turn === player ? 2 : 1;
   const canTakeback = !rated && !over && game.moves.length >= takebackPlies && (turn === player || thinking);
@@ -268,34 +287,39 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
     getEngine().stop();
     stopSpeaking();
     useGame.getState().takeback(takebackPlies);
-    announce("Move taken back");
-    showToast("Move taken back.");
+    toast("Move taken back.");
   };
 
   const offerDraw = async () => {
     if (!canAct) return;
     if (game.moves.length - drawPly < 10) {
-      showToast("You offered a draw recently. Play on a little.");
+      toast("You offered a draw recently. Play on a little.");
       return;
     }
     setDrawPly(game.moves.length);
-    showToast(`${level.name} is considering…`);
+    toast(`${level.name} is considering…`);
     const asked = { id: game.id, ply: game.moves.length };
-    const r = await evaluatePosition(fen, { depth: 10, movetime: 400 });
+    const res = await evaluatePosition(fen, { depth: 10, movetime: 400 });
     // The offer lapses if the search was cut short or the position changed meanwhile (a move,
     // an undo, a new game): a decision about an old position must not end this one.
     const current = useGame.getState().game;
-    if (r.cancelled || !current || current.id !== asked.id || current.moves.length !== asked.ply || current.result) return;
-    const cp = r.score.mate !== null ? (r.score.mate > 0 ? 2000 : -2000) : (r.score.cp ?? 0);
+    if (res.cancelled || !current || current.id !== asked.id || current.moves.length !== asked.ply || current.result) return;
+    const cp = res.score.mate !== null ? (res.score.mate > 0 ? 2000 : -2000) : (res.score.cp ?? 0);
     const enginePov = engineColor === "w" ? cp : -cp;
     const accept = enginePov <= -60 || (Math.abs(enginePov) <= 35 && game.moves.length >= 30);
     if (accept) void finish({ winner: null, reason: "agreement" });
-    else showToast(`${level.name} declines the draw.`, "bad");
+    else toast(`${level.name} declines the draw.`, { tone: "bad" });
   };
 
   const resign = () => {
     setConfirmResign(false);
     void finish({ winner: engineColor, reason: "resign" });
+  };
+
+  /** Changing the setup before your first move restarts the waiting game with it (and remembers it). */
+  const changeSetup = (patch: Partial<Setup>) => {
+    getEngine().stop();
+    useGame.getState().startFromSetup(patch);
   };
 
   /* ------------------------------------------------------------------ analysis */
@@ -305,7 +329,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
     const gameId = game.id;
     analyzeGame(game.moves, { signal: ctrl.signal, onProgress: (d, t) => setProgress(d / t), preferServer: !e2e.fast })
       .then(async (a) => {
-        // Never write one game's analysis into another (e.g. after Rematch).
+        // Never write one game's analysis into another (e.g. after Play again).
         if (ctrl.signal.aborted || useGame.getState().game?.id !== gameId) return;
         setAnalysis(a);
         setProgress(null);
@@ -314,7 +338,7 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
       })
       .catch((err: unknown) => {
         if ((err as { name?: string })?.name === "AbortError") return;
-        setAnalysisError("Analysis unavailable right now.");
+        setAnalysisError("Analysis is not available right now.");
         setProgress(null);
       });
     return () => ctrl.abort();
@@ -351,29 +375,6 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   }, [e2e.enabled, fen, turn, player, game.moves, game.result, thinking]);
 
   /* ------------------------------------------------------------------ render */
-  if (showOver && game.result) {
-    return (
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-        <Confetti fire={confetti} />
-        <GameOverPanel
-          game={game}
-          analysis={analysis}
-          progress={progress}
-          analysisError={analysisError}
-          onRematch={() => {
-            finishing.current = false;
-            useGame.getState().start(game.config);
-            window.scrollTo({ top: 0, behavior: "instant" });
-          }}
-          onNewGame={() => {
-            useGame.getState().clear();
-            onNewSetup();
-          }}
-        />
-      </div>
-    );
-  }
-
   const reveal = peeking || revealed;
   const boardVisibility = visibility === "blind" ? "full" : visibility;
   const inCheck = chess.inCheck();
@@ -381,9 +382,30 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
   const checkSquare = inCheck && (visibility === "full" || reveal) && !matedSquare ? kingSquare(chess, turn) : null;
   const slowFinal = !!lastMove && lastMove.san.includes("#");
   const left = peeksLeft(game);
-  const modeMeta = VISIBILITY_MODES.find((m) => m.id === visibility)!;
 
-  const board = (
+  const playRematch = () => {
+    finishing.current = false;
+    useGame.getState().startFromSetup();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+  const changeSetupAfter = () => {
+    finishing.current = false;
+    useUi.getState().setSetupMoreOpen(false);
+    useGame.getState().startFromSetup();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+
+  const board = review ? (
+    <Board
+      fen={r.fen}
+      orientation={orientation}
+      lastMove={r.last ? { from: r.last.from, to: r.last.to, flags: r.last.flags, promotion: r.last.promotion, captured: r.last.captured } : null}
+      interactive={false}
+      arrows={bestArrow(r.pa)}
+      matedSquare={r.ply === r.total && game.result?.reason === "checkmate" ? kingSquare(chess, turn) : null}
+      ariaLabel={`Replay position after ply ${r.ply}`}
+    />
+  ) : (
     <Board
       ref={boardRef}
       fen={fen}
@@ -400,171 +422,209 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
       matedSquare={matedSquare}
       ghostDelayMs={settings.ghostDelay * 1000}
       speed={slowFinal ? "slow" : "normal"}
-      ariaLabel={visibility === "full" || reveal ? "Chessboard" : "Hidden chessboard — click a from-square, then a to-square"}
+      ariaLabel={visibility === "full" || reveal ? "Chessboard" : "Hidden chessboard: click a from-square, then a to-square"}
+    />
+  );
+
+  const actions = (
+    <div className="grid grid-cols-4 gap-2" data-testid="game-actions">
+      <Button
+        variant="primary"
+        onClick={peek}
+        disabled={over || visibility === "full" || left <= 0 || peeking}
+        data-testid="peek"
+        icon={<EyeMorph closed={!peeking} size={18} />}
+        title="Peek (P)"
+        className="px-3"
+      >
+        Peek{Number.isFinite(left) ? <span className="tabular opacity-70">{left}</span> : null}
+      </Button>
+      <Button onClick={takeback} disabled={!canTakeback} icon={<IconUndo size={17} />} title={rated ? "No takebacks in rated games" : "Take back"} data-testid="takeback" className="px-3">
+        Undo
+      </Button>
+      <Button onClick={() => void offerDraw()} disabled={!canAct || game.moves.length < 2} icon={<IconHandshake size={17} />} data-testid="offer-draw" className="px-3">
+        Draw
+      </Button>
+      <Button
+        variant="danger"
+        onClick={() => (settings.confirmResign ? setConfirmResign(true) : resign())}
+        disabled={over}
+        icon={<IconFlag size={17} />}
+        data-testid="resign"
+        className="px-3"
+      >
+        Resign
+      </Button>
+    </div>
+  );
+
+  const input = (
+    <MoveInput
+      ref={inputRef}
+      chess={chess}
+      disabled={!canAct}
+      hints={rated ? "off" : settings.moveHints}
+      onMove={onTypedMove}
+      onIllegal={(raw) => registerIllegal(raw)}
+      className={phone ? "flex-col-reverse" : undefined}
     />
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 sm:px-6" data-testid="game-screen">
+    <div className={cn("px-3 pt-2 sm:px-6 lg:px-10", over ? "pb-10" : "pb-48 lg:pb-10")} data-testid="game-screen">
+      <h1 className="sr-only">Play blindfold chess</h1>
       <Confetti fire={confetti} />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_25rem]">
         {/* Board column */}
-        <section aria-label="Game" className="mx-auto w-full max-w-[min(100%,calc(100dvh-15rem))] lg:max-w-[min(100%,calc(100dvh-14rem))]">
+        <section aria-label="Board" className="mx-auto w-full max-w-[min(100%,calc(100dvh-14rem))] lg:max-w-[min(100%,calc(100dvh-13rem))]">
           <PlayerBar
             name={level.name}
-            detail={`Level ${level.id} · ≈${level.elo}`}
+            detail={`Level ${level.id}, about ${level.elo}`}
             color={engineColor}
             time={engineTime}
             active={!over && turn === engineColor}
             thinking={thinking}
+            clockId="clock-engine"
           />
-          <div className="relative my-2.5">
-            {visibility === "blind" ? (
-              <AnimatePresence mode="popLayout" initial={false}>
-                {reveal ? (
+          <div className="relative my-3 flex gap-3">
+            {review && analysis ? <EvalBar win={r.win} label={r.label} orientation={orientation} /> : null}
+            <ViewTransition name="hero-board" share="board-morph" default="none">
+              <div className="relative min-w-0 flex-1">
+                {visibility === "blind" && !review ? (
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {reveal ? (
+                      <motion.div
+                        key="board"
+                        initial={{ opacity: 0, y: 30, scale: 0.95, filter: "blur(8px)" }}
+                        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: 20, scale: 0.97, filter: "blur(6px)" }}
+                        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                      >
+                        {board}
+                      </motion.div>
+                    ) : (
+                      <motion.div key="blind" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                        <BlindStage
+                          lastSan={lastMove?.san ?? null}
+                          lastBy={lastMove ? (lastMove.color === player ? "you" : "engine") : null}
+                          ply={history.length}
+                          thinking={thinking}
+                          inCheck={inCheck && turn === player}
+                          engineName={level.name}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                ) : (
                   <motion.div
-                    key="board"
-                    initial={{ opacity: 0, y: 40, scale: 0.94, rotateX: 18 }}
-                    animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
-                    exit={{ opacity: 0, y: 30, scale: 0.96 }}
-                    transition={{ type: "spring", stiffness: 260, damping: 26 }}
-                    style={{ transformPerspective: 1200 }}
+                    animate={peeking ? { scale: 1.012, y: -6 } : { scale: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                    className={cn("rounded-[0.875rem] transition-shadow duration-500", peeking && "shadow-[0_0_0_3px_var(--studio-hi),0_0_0_5px_var(--ink),0_40px_80px_-30px_rgb(0_0_0/0.45)]")}
                   >
                     {board}
                   </motion.div>
-                ) : (
-                  <motion.div key="blind" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-                    <BlindPanel
-                      lastSan={lastMove?.san ?? null}
-                      lastBy={lastMove ? (lastMove.color === player ? "you" : "engine") : null}
-                      ply={history.length}
-                      thinking={thinking}
-                      inCheck={inCheck && turn === player}
-                      engineName={level.name}
-                    />
-                  </motion.div>
                 )}
-              </AnimatePresence>
-            ) : (
-              <motion.div
-                animate={peeking ? { scale: 1.015, y: -6 } : { scale: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                className={cn("rounded-[12px] transition-shadow duration-500", peeking && "shadow-[0_0_0_2px_rgba(245,176,78,0.55),0_30px_80px_-20px_rgba(245,176,78,0.35)]")}
-              >
-                {board}
-              </motion.div>
-            )}
-            <AnimatePresence>
-              {peeking ? (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="pointer-events-none absolute left-1/2 top-3 z-50 -translate-x-1/2 rounded-full bg-night-950/80 px-3 py-1 text-xs font-semibold text-ember-200 ring-1 ring-ember-400/40 backdrop-blur"
-                >
-                  Peeking…
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+                <AnimatePresence>
+                  {peeking ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="pill-primary pointer-events-none absolute left-1/2 top-0 z-50 -translate-x-1/2 -translate-y-1/2 rounded-full px-4 py-1 text-small font-semibold"
+                    >
+                      Peeking…
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+            </ViewTransition>
           </div>
-          <PlayerBar
-            name="You"
-            detail={rated ? "Rated game" : "Practice"}
-            color={player}
-            time={myTime}
-            active={!over && turn === player}
-          />
+          <PlayerBar name="You" detail={rated ? "Rated game" : "Practice game"} color={player} time={myTime} active={!over && turn === player} clockId="clock-you" />
+          {review ? <ReplayControls r={r} className="mx-auto mt-4 max-w-xs" /> : null}
         </section>
 
         {/* Side panel */}
-        <aside className="flex min-w-0 flex-col gap-4" aria-label="Moves and controls">
-          <div className="surface rounded-2xl p-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-moon-300">
-                  <EyeMorph closed={visibility !== "full" && !reveal} size={22} />
+        <aside aria-label="Game panel" className="flex min-w-0 flex-col gap-4">
+          {review ? (
+            <>
+              <ResultPanel game={game} analysis={analysis} analysisError={analysisError} onRematch={playRematch} onNewSetup={changeSetupAfter} />
+              <ReviewPanel game={game} analysis={analysis} progress={progress} analysisError={analysisError} r={r} />
+            </>
+          ) : (
+            <>
+              <Panel className="p-4 sm:p-5">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <ModeGlyph mode={visibility} size={28} />
+                    <span className="truncate font-semibold text-ink">{modeName(visibility)}</span>
+                    <Badge tone={rated ? "ink" : "neutral"}>{rated ? "Rated" : "Practice"}</Badge>
+                  </div>
+                  <IconButton label="Keyboard shortcuts" onClick={() => setHelpOpen(true)} size="sm">
+                    <IconKeyboard size={18} />
+                  </IconButton>
+                </div>
+                <StatusLine over={over} myTurn={turn === player} thinking={thinking} inCheck={inCheck} engineName={level.name} />
+                {phone ? (
+                  <Portal>
+                    {/* A labelled region: portalled to the body, it still sits in a landmark. */}
+                    <section
+                      aria-label="Your move"
+                      className={cn(
+                        "glass-float fixed inset-x-2 z-50 rounded-[1.5rem] p-2 transition-[bottom] duration-150",
+                        "bottom-[calc(max(0.5rem,env(safe-area-inset-bottom))+var(--kb))]",
+                        over && "hidden",
+                      )}
+                      data-testid="move-bar"
+                    >
+                      <div className="mb-2 [[data-kb=open]_&]:hidden">{actions}</div>
+                      {input}
+                    </section>
+                  </Portal>
+                ) : (
+                  <div className="mt-3 flex flex-col gap-3">
+                    {input}
+                    {actions}
+                  </div>
+                )}
+              </Panel>
+
+              {preGame ? (
+                <Panel className="p-4 sm:p-5" data-testid="quick-setup">
+                  <h2 className="display text-[1.5rem] leading-none">
+                    <span className="thin">Ready</span> when you are
+                  </h2>
+                  <p className="mt-2 text-small text-muted">Make your first move to begin. Change anything below first if you like: it is remembered.</p>
+                  <div className="mt-5">
+                    <SetupControls setup={setup} onChange={changeSetup} compact moreOpen={moreOpen} onMoreOpenChange={(v) => useUi.getState().setSetupMoreOpen(v)} />
+                  </div>
+                </Panel>
+              ) : (
+                <MoveList sans={game.sans} mode={game.config.moveList} />
+              )}
+
+              <div className="flex items-center justify-between gap-3 px-1 text-small text-muted">
+                <span data-testid="illegal-count">
+                  Illegal attempts <span className="font-semibold tabular text-ink">{game.illegalAttempts}</span>
                 </span>
-                <span className="text-sm font-semibold text-ivory-100">{modeMeta.name}</span>
-                <Badge tone={rated ? "ember" : "moon"}>{rated ? "Rated" : "Practice"}</Badge>
+                <span>
+                  Peeks used <span className="font-semibold tabular text-ink">{game.peeksUsed}</span>
+                </span>
+                <IconButton label="Flip board (F)" onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))} size="sm">
+                  <IconFlip size={17} />
+                </IconButton>
               </div>
-              <IconButton label="Keyboard shortcuts" onClick={() => setHelpOpen(true)}>
-                <IconKeyboard size={18} />
-              </IconButton>
-            </div>
-            <StatusLine over={over} myTurn={turn === player} thinking={thinking} inCheck={inCheck} engineName={level.name} />
-            <div className="mt-3">
-              <MoveInput
-                ref={inputRef}
-                chess={chess}
-                disabled={!canAct}
-                hints={rated ? "off" : settings.moveHints}
-                onMove={onTypedMove}
-                onIllegal={(raw) => registerIllegal(raw)}
-              />
-            </div>
-            <AnimatePresence>
-              {toast ? (
-                <motion.div
-                  key={toast.text}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className={cn("overflow-hidden text-sm", toast.tone === "bad" ? "text-coral-300" : toast.tone === "good" ? "text-jade-300" : "text-moon-200")}
-                  role="status"
-                >
-                  <div className="pt-2">{toast.text}</div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-            <Button
-              variant="moon"
-              onClick={peek}
-              disabled={over || visibility === "full" || left <= 0 || peeking}
-              data-testid="peek"
-              icon={<EyeMorph closed={!peeking} size={18} />}
-              title="Peek (P)"
-            >
-              Peek {Number.isFinite(left) ? <span className="font-mono text-xs opacity-80">{left}</span> : null}
-            </Button>
-            <Button onClick={takeback} disabled={!canTakeback} icon={<IconUndo size={17} />} title={rated ? "No takebacks in rated games" : "Take back"} data-testid="takeback">
-              Undo
-            </Button>
-            <Button onClick={() => void offerDraw()} disabled={!canAct || game.moves.length < 2} icon={<IconHandshake size={17} />} data-testid="offer-draw">
-              Draw
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => (settings.confirmResign ? setConfirmResign(true) : resign())}
-              disabled={over}
-              icon={<IconFlag size={17} />}
-              data-testid="resign"
-            >
-              Resign
-            </Button>
-          </div>
-
-          <MoveList sans={game.sans} mode={game.config.moveList} />
-
-          <div className="flex items-center justify-between gap-2 px-1 text-xs text-ivory-500">
-            <span data-testid="illegal-count">
-              Illegal attempts: <span className="font-mono text-ivory-300">{game.illegalAttempts}</span>
-            </span>
-            <span>
-              Peeks used: <span className="font-mono text-ivory-300">{game.peeksUsed}</span>
-            </span>
-            <IconButton label="Flip board (F)" onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))}>
-              <IconFlip size={17} />
-            </IconButton>
-          </div>
+            </>
+          )}
         </aside>
       </div>
 
-      <Modal open={confirmResign} onClose={() => setConfirmResign(false)} title="Resign this game?">
-        <p className="text-sm text-ivory-300">{rated ? "This counts as a loss for your blindfold rating." : "No worries — it's practice."}</p>
-        <div className="mt-5 flex justify-end gap-2">
+      <Modal
+        open={confirmResign}
+        onClose={() => setConfirmResign(false)}
+        title="Resign this game?"
+        description={rated ? "This counts as a loss for your blindfold rating." : "No worries: it's practice."}
+      >
+        <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setConfirmResign(false)} data-autofocus>
             Keep playing
           </Button>
@@ -574,92 +634,43 @@ export function GameScreen({ onNewSetup }: { onNewSetup: () => void }) {
         </div>
       </Modal>
 
-      <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="Shortcuts & input">
-        <ul className="space-y-2 text-sm text-ivory-300">
-          <li className="flex justify-between gap-4"><span>Peek at the board</span><span><Kbd>P</Kbd> / <Kbd>Alt</Kbd>+<Kbd>P</Kbd></span></li>
-          <li className="flex justify-between gap-4"><span>Speak a move</span><span><Kbd>M</Kbd> / <Kbd>Alt</Kbd>+<Kbd>M</Kbd></span></li>
-          <li className="flex justify-between gap-4"><span>Focus the move box</span><Kbd>/</Kbd></li>
-          <li className="flex justify-between gap-4"><span>Flip the board</span><Kbd>F</Kbd></li>
-          <li className="flex justify-between gap-4"><span>Move a cursor on the board</span><span><Kbd>←</Kbd><Kbd>→</Kbd><Kbd>↑</Kbd><Kbd>↓</Kbd> + <Kbd>Enter</Kbd></span></li>
+      <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="Shortcuts and input" closeButton>
+        <ul className="space-y-2.5 text-[0.9375rem] text-fg">
+          <li className="flex items-center justify-between gap-4">
+            <span>Peek at the board</span>
+            <span className="flex items-center gap-1">
+              <Kbd>P</Kbd> or <Kbd>Alt</Kbd>+<Kbd>P</Kbd>
+            </span>
+          </li>
+          <li className="flex items-center justify-between gap-4">
+            <span>Speak a move</span>
+            <span className="flex items-center gap-1">
+              <Kbd>M</Kbd> or <Kbd>Alt</Kbd>+<Kbd>M</Kbd>
+            </span>
+          </li>
+          <li className="flex items-center justify-between gap-4">
+            <span>Focus the move box</span>
+            <Kbd>/</Kbd>
+          </li>
+          <li className="flex items-center justify-between gap-4">
+            <span>Flip the board</span>
+            <Kbd>F</Kbd>
+          </li>
+          <li className="flex items-center justify-between gap-4">
+            <span>Move a cursor on the board</span>
+            <span className="flex items-center gap-1">
+              <Kbd>←</Kbd>
+              <Kbd>→</Kbd>
+              <Kbd>↑</Kbd>
+              <Kbd>↓</Kbd> + <Kbd>Enter</Kbd>
+            </span>
+          </li>
         </ul>
-        <p className="mt-4 text-sm text-ivory-400">
-          Moves can be typed as SAN (<code className="font-mono text-ivory-200">Nf3</code>, <code className="font-mono text-ivory-200">exd5</code>, <code className="font-mono text-ivory-200">O-O</code>), UCI
-          (<code className="font-mono text-ivory-200">g1f3</code>) or words (<code className="font-mono text-ivory-200">knight to f3</code>, <code className="font-mono text-ivory-200">castle long</code>).
+        <p className="mt-5 text-small text-muted">
+          Type moves as SAN (<strong className="text-ink">Nf3</strong>, <strong className="text-ink">exd5</strong>, <strong className="text-ink">O-O</strong>), as coordinates (
+          <strong className="text-ink">g1f3</strong>) or in words (<strong className="text-ink">knight to f3</strong>, <strong className="text-ink">castle long</strong>).
         </p>
       </Modal>
-    </div>
-  );
-}
-
-function StatusLine({ over, myTurn, thinking, inCheck, engineName }: { over: boolean; myTurn: boolean; thinking: boolean; inCheck: boolean; engineName: string }) {
-  let content: React.ReactNode;
-  let key: string;
-  if (over) {
-    key = "over";
-    content = <span className="text-ivory-300">Game over</span>;
-  } else if (thinking) {
-    key = "thinking";
-    content = (
-      <span className="flex items-center gap-2 text-moon-200">
-        <ThinkingDots /> {engineName} is thinking
-      </span>
-    );
-  } else if (myTurn) {
-    key = inCheck ? "check" : "turn";
-    content = inCheck ? <span className="font-semibold text-coral-300">Check! Your move.</span> : <span className="text-ember-200">Your move</span>;
-  } else {
-    key = "wait";
-    content = <span className="text-ivory-400">Waiting…</span>;
-  }
-  return (
-    <div className="h-6 text-sm" data-testid="status-line">
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={key} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }} transition={{ duration: 0.18 }}>
-          {content}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function PlayerBar({
-  name,
-  detail,
-  color,
-  time,
-  active,
-  thinking,
-}: {
-  name: string;
-  detail: string;
-  color: "w" | "b";
-  time: number | null;
-  active: boolean;
-  thinking?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 px-1">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span
-          className={cn(
-            "h-7 w-7 shrink-0 rounded-lg ring-1 ring-inset",
-            color === "w" ? "bg-gradient-to-br from-ivory-50 to-ivory-300 ring-ivory-50/40" : "bg-gradient-to-br from-night-500 to-night-800 ring-ivory-100/15",
-          )}
-          aria-hidden="true"
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 truncate text-sm font-semibold text-ivory-50">
-            {name}
-            {thinking ? (
-              <span className="text-moon-300">
-                <ThinkingDots />
-              </span>
-            ) : null}
-          </div>
-          <div className="truncate text-xs text-ivory-500">{detail}</div>
-        </div>
-      </div>
-      {time !== null ? <Clock ms={time} active={active} label={name} testId={name === "You" ? "clock-you" : "clock-engine"} /> : null}
     </div>
   );
 }
