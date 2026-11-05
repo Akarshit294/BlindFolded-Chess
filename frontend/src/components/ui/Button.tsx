@@ -1,109 +1,111 @@
-"use client";
-import { motion, type HTMLMotionProps } from "motion/react";
 import Link from "next/link";
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "moon";
-type Size = "sm" | "md" | "lg";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "quiet" | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
 
-const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-gradient-to-b from-ember-300 to-ember-500 text-night-950 shadow-[0_10px_30px_-10px_rgba(245,176,78,0.65),inset_0_1px_0_rgba(255,255,255,0.45)] hover:from-ember-200 hover:to-ember-400",
-  secondary:
-    "bg-night-700/80 text-ivory-100 ring-1 ring-inset ring-ivory-100/10 hover:bg-night-600/80 hover:ring-ivory-100/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
-  ghost: "bg-transparent text-ivory-300 hover:bg-ivory-100/[0.06] hover:text-ivory-50",
-  danger: "bg-coral-500/15 text-coral-300 ring-1 ring-inset ring-coral-400/30 hover:bg-coral-500/25",
-  moon: "bg-moon-500/15 text-moon-200 ring-1 ring-inset ring-moon-400/30 hover:bg-moon-500/25",
+/**
+ * Pills. Primary is glossy black lacquer (white porcelain in dark mode), secondary a white pill with a soft
+ * shadow. Hover lifts by a pixel, press scales down a touch: CSS transforms only, so it works before hydration.
+ */
+const VARIANTS: Record<ButtonVariant, string> = {
+  primary: "pill-primary",
+  secondary: "pill-secondary",
+  ghost: "text-ink hover:bg-ink/[0.06]",
+  quiet: "glass-well text-ink hover:bg-ink/[0.08]",
+  danger: "pill-secondary !text-bad",
 };
 
-const SIZES: Record<Size, string> = {
-  sm: "h-8 gap-1.5 rounded-lg px-3 text-[13px]",
-  md: "h-10 gap-2 rounded-xl px-4 text-sm",
-  lg: "h-12 gap-2.5 rounded-2xl px-6 text-[15px]",
+const SIZES: Record<ButtonSize, string> = {
+  // sm is 36 px tall; an invisible ::after extends the hit area to 44 px for touch.
+  sm: "h-9 gap-1.5 px-4 text-small after:absolute after:-inset-1 after:content-['']",
+  md: "h-11 gap-2 px-5 text-[0.9375rem]",
+  lg: "h-[3.25rem] gap-2.5 px-7 text-base",
 };
 
-const BASE =
-  "relative inline-flex select-none items-center justify-center font-medium tracking-[-0.005em] transition-colors duration-200 disabled:pointer-events-none disabled:opacity-45 outline-none focus-visible:ring-2 focus-visible:ring-moon-300 focus-visible:ring-offset-2 focus-visible:ring-offset-night-950";
+export const BUTTON_BASE =
+  "relative inline-flex shrink-0 cursor-pointer select-none items-center justify-center whitespace-nowrap rounded-full font-semibold tracking-[0.01em] outline-none transition-[transform,background,box-shadow,color,opacity] duration-200 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.97] active:duration-100 disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)] motion-reduce:hover:translate-y-0";
 
-type ButtonProps = Omit<HTMLMotionProps<"button">, "children"> & {
-  variant?: Variant;
-  size?: Size;
-  children?: ReactNode;
+export function buttonClass(variant: ButtonVariant = "secondary", size: ButtonSize = "md", className?: string) {
+  return cn(BUTTON_BASE, VARIANTS[variant], SIZES[size], className);
+}
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   icon?: ReactNode;
+  /** Icon after the label instead of before it. */
+  trailingIcon?: ReactNode;
 };
 
-/** Buttons press down slightly and lift on hover — springy, transform-only micro-interactions. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "secondary", size = "md", className, children, icon, type = "button", ...rest },
+  { variant = "secondary", size = "md", className, children, icon, trailingIcon, type = "button", ...rest },
   ref,
 ) {
   return (
-    <motion.button
-      ref={ref}
-      type={type}
-      whileHover={{ y: -1 }}
-      whileTap={{ scale: 0.96, y: 0 }}
-      transition={{ type: "spring", stiffness: 600, damping: 30 }}
-      className={cn(BASE, VARIANTS[variant], SIZES[size], className)}
-      {...rest}
-    >
+    <button ref={ref} type={type} className={buttonClass(variant, size, className)} {...rest}>
       {icon}
       {children}
-    </motion.button>
+      {trailingIcon}
+    </button>
   );
 });
 
 type LinkButtonProps = {
   href: string;
-  variant?: Variant;
-  size?: Size;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   className?: string;
   children: ReactNode;
   icon?: ReactNode;
+  trailingIcon?: ReactNode;
   transitionTypes?: string[];
+  prefetch?: boolean;
+  onClick?: () => void;
+  "data-testid"?: string;
 };
 
-const MotionLink = motion.create(Link);
-
-export function LinkButton({ href, variant = "secondary", size = "md", className, children, icon }: LinkButtonProps) {
+export function LinkButton({ href, variant = "secondary", size = "md", className, children, icon, trailingIcon, transitionTypes, prefetch, onClick, ...rest }: LinkButtonProps) {
   return (
-    <MotionLink
-      href={href}
-      whileHover={{ y: -1 }}
-      whileTap={{ scale: 0.96, y: 0 }}
-      transition={{ type: "spring", stiffness: 600, damping: 30 }}
-      className={cn(BASE, VARIANTS[variant], SIZES[size], className)}
-    >
+    <Link href={href} transitionTypes={transitionTypes} prefetch={prefetch} onClick={onClick} className={buttonClass(variant, size, className)} {...rest}>
       {icon}
       {children}
-    </MotionLink>
+      {trailingIcon}
+    </Link>
   );
 }
 
-export function IconButton({
-  label,
-  className,
-  children,
-  active,
-  ...rest
-}: Omit<HTMLMotionProps<"button">, "children"> & { label: string; children: ReactNode; active?: boolean }) {
+type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
+  label: string;
+  children: ReactNode;
+  active?: boolean;
+  /** "plain" sits on glass; "raised" is a small white pill. */
+  tone?: "plain" | "raised";
+  size?: "sm" | "md";
+};
+
+/** Round icon-only button with an accessible name; 40 px (44 px hit area). */
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+  { label, className, children, active, tone = "plain", size = "md", type = "button", ...rest },
+  ref,
+) {
   return (
-    <motion.button
-      type="button"
+    <button
+      ref={ref}
+      type={type}
       aria-label={label}
       title={label}
-      whileHover={{ scale: 1.06 }}
-      whileTap={{ scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 600, damping: 28 }}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-xl text-ivory-300 outline-none transition-colors hover:bg-ivory-100/[0.07] hover:text-ivory-50 focus-visible:ring-2 focus-visible:ring-moon-300 disabled:pointer-events-none disabled:opacity-40",
-        active && "bg-moon-500/15 text-moon-200",
+        "relative inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full text-ink outline-none transition-[transform,background,box-shadow,color] duration-200 ease-out active:scale-[0.92] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] after:absolute after:-inset-0.5 after:content-['']",
+        size === "md" ? "h-10 w-10" : "h-9 w-9",
+        tone === "raised" ? "pill-secondary" : "hover:bg-ink/[0.07]",
+        active && "bg-ink text-on-ink hover:bg-ink",
         className,
       )}
       {...rest}
     >
       {children}
-    </motion.button>
+    </button>
   );
-}
+});

@@ -4,7 +4,7 @@
  * calls window.__bfRender(spec) for every image the site ships: piece sprites, the hero frames and the blurred
  * backdrop pieces. Each call mounts a fresh canvas, waits a few frames and returns a WebP data URL.
  */
-import { ContactShadows, PerspectiveCamera } from "@react-three/drei";
+import { PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { DepthOfField, EffectComposer } from "@react-three/postprocessing";
 import { useEffect, useRef, useState } from "react";
@@ -115,7 +115,7 @@ const SPRITE_SCALE: Record<PieceType | "token", number> = { p: 1.22, r: 1.13, n:
 function SpriteScene({ spec }: { spec: Extract<RenderSpec, { kind: "sprite" }> }) {
   const { color, type } = parsePiece(spec.piece);
   const elevation = (19 * Math.PI) / 180;
-  const target = new THREE.Vector3(0, 0.9, 0);
+  const target = new THREE.Vector3(0, 0.805, 0);
   const dist = 9.4;
   const pos: [number, number, number] = [0, target.y + Math.sin(elevation) * dist, Math.cos(elevation) * dist];
   return (
@@ -123,8 +123,8 @@ function SpriteScene({ spec }: { spec: Extract<RenderSpec, { kind: "sprite" }> }
       <PerspectiveCamera makeDefault fov={13.4} position={pos} onUpdate={(c) => c.lookAt(target)} />
       <StudioEnvironment intensity={spec.theme === "light" ? 1 : 0.9} />
       <StudioLights theme={spec.theme} />
+      {/* No baked shadow: the board draws a contact shadow, so a dragged piece can lift away from it. */}
       <Piece type={type} color={color} theme={spec.theme} position={[0, 0, 0]} scale={SPRITE_SCALE[type]} />
-      <ContactShadows position={[0, 0.002, 0]} opacity={spec.theme === "light" ? 0.62 : 0.8} scale={2.1} blur={2.2} far={0.9} resolution={512} color="#000000" frames={1} />
     </>
   );
 }
