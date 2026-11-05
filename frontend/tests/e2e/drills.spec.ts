@@ -79,13 +79,8 @@ test.describe("training drills", () => {
   test("coordinates — name the square", async ({ page }) => {
     await startDrill(page, "coordinates", 3);
     await expect(page.getByTestId("drill-prompt").last()).toContainText("Which square is lit?");
-    // The lit square is the only marked one; find it via the board marks.
-    const box = (await page.locator('[aria-roledescription="chessboard"]').boundingBox())!;
-    const mark = page.locator('[aria-roledescription="chessboard"] .bg-ember-400\\/70').first();
-    const m = (await mark.boundingBox())!;
-    const col = Math.floor((m.x + m.width / 2 - box.x) / (box.width / 8));
-    const row = Math.floor((m.y + m.height / 2 - box.y) / (box.height / 8));
-    const sq = `${String.fromCharCode(97 + col)}${8 - row}`;
+    // The lit square is the only focus mark on the board.
+    const sq = (await page.locator('[aria-roledescription="chessboard"] [data-mark="focus"]').first().getAttribute("data-square"))!;
     await page.getByTestId("drill-input").fill(sq);
     await page.getByTestId("drill-submit").click();
     await expectCorrect(page);
@@ -154,6 +149,22 @@ test.describe("training drills", () => {
     }
     await page.getByTestId("memory-check").click();
     await expectCorrect(page);
+  });
+
+  test("one tap on the Train hub starts a drill", async ({ page }) => {
+    await page.goto("/train");
+    await page.getByTestId("drill-card-lines").getByRole("link", { name: "Diagonals & lines" }).click();
+    await expect(page.getByTestId("drill-running")).toBeVisible();
+    await expect(page.getByTestId("drill-prompt").last()).toBeVisible();
+  });
+
+  test("a drill remembers its level", async ({ page }) => {
+    await startDrill(page, "square-color", 3);
+    await endDrill(page);
+    await page.goto("/train/square-color");
+    await expect(page.getByTestId("drill-level-3")).toHaveAttribute("aria-checked", "true");
+    await page.goto("/train");
+    await expect(page.getByTestId("drill-card-square-color")).toContainText("Level 3");
   });
 
   test("drill sessions update the hub", async ({ page }) => {

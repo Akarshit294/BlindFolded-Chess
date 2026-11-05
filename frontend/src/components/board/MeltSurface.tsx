@@ -107,6 +107,8 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
   useLayoutEffect(() => {
     stillRef.current = still;
   });
+  // The render loop lives in the setup effect; other effects reach it through this ref.
+  const kickRef = useRef<() => void>(() => undefined);
 
   // One context per board, created once.
   useEffect(() => {
@@ -140,6 +142,67 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
     const names = ["uTime", "uMelt", "uRipple", "uOrigin", "uLight", "uDark", "uPx"] as const;
     const u = Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(prog, n)])) as Engine["u"];
 
+    function draw() {
+      const e = engine.current;
+      const c = canvas.current;
+      if (!e || !c) return;
+      const a = anim.current;
+      const { gl, u } = e;
+      gl.uniform1f(u.uTime, a.t);
+      gl.uniform1f(u.uMelt, a.current);
+      gl.uniform1f(u.uRipple, a.ripple);
+      gl.uniform2f(u.uOrigin, a.origin[0], a.origin[1]);
+      gl.uniform3f(u.uLight, ...e.light);
+      gl.uniform3f(u.uDark, ...e.dark);
+      gl.uniform1f(u.uPx, 1 / Math.max(1, c.width));
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      // Fade the canvas with the melt, so a solid board is the crisp CSS one underneath.
+      c.style.opacity = String(Math.min(1, a.current * 5));
+    }
+
+    function tick(now: number) {
+      const a = anim.current;
+      const dt = a.last ? Math.min(0.05, (now - a.last) / 1000) : 0.016;
+      a.last = now;
+      const rising = a.target > a.current;
+      // Melting takes about a second; solidifying (a peek) is quick.
+      const k = rising ? 2.4 : 10;
+      a.current += (a.target - a.current) * (1 - Math.exp(-dt * k));
+      if (Math.abs(a.target - a.current) < 0.002) a.current = a.target;
+      if (a.ripple < 1) a.ripple = Math.min(1, a.ripple + dt / 1.5);
+      a.t += dt;
+      const settling = a.current !== a.target || a.ripple < 1;
+      // At rest the liquid moves slowly: half the frame rate is plenty.
+      a.frame += 1;
+      if (settling || a.frame % 2 === 0) draw();
+      if (stillRef.current && !settling) {
+        a.raf = 0;
+        a.last = 0;
+        return;
+      }
+      if (a.current <= 0 && a.target <= 0 && a.ripple >= 1) {
+        draw();
+        a.raf = 0;
+        a.last = 0;
+        return;
+      }
+      a.raf = requestAnimationFrame(tick);
+    }
+
+    function kick() {
+      const a = anim.current;
+      if (!engine.current) return;
+      if (stillRef.current) {
+        // Reduced motion: jump to the end state, one frame.
+        a.current = a.target;
+        a.ripple = 1;
+        draw();
+        return;
+      }
+      if (!a.raf) a.raf = requestAnimationFrame(tick);
+    }
+    kickRef.current = kick;
+
     const readColors = () => {
       const cs = getComputedStyle(document.documentElement);
       if (!engine.current) return;
@@ -172,75 +235,13 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
       mo.disconnect();
       gl.getExtension("WEBGL_lose_context")?.loseContext();
       engine.current = null;
+      kickRef.current = () => undefined;
     };
-    // draw is stable (reads refs only)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function draw() {
-    const e = engine.current;
-    const c = canvas.current;
-    if (!e || !c) return;
-    const a = anim.current;
-    const { gl, u } = e;
-    gl.uniform1f(u.uTime, a.t);
-    gl.uniform1f(u.uMelt, a.current);
-    gl.uniform1f(u.uRipple, a.ripple);
-    gl.uniform2f(u.uOrigin, a.origin[0], a.origin[1]);
-    gl.uniform3f(u.uLight, ...e.light);
-    gl.uniform3f(u.uDark, ...e.dark);
-    gl.uniform1f(u.uPx, 1 / Math.max(1, c.width));
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    // Fade the canvas with the melt, so a solid board is the crisp CSS one underneath.
-    c.style.opacity = String(Math.min(1, a.current * 5));
-  }
-
-  function tick(now: number) {
-    const a = anim.current;
-    const dt = a.last ? Math.min(0.05, (now - a.last) / 1000) : 0.016;
-    a.last = now;
-    const rising = a.target > a.current;
-    // Melting takes about a second; solidifying (a peek) is quick.
-    const k = rising ? 2.4 : 10;
-    a.current += (a.target - a.current) * (1 - Math.exp(-dt * k));
-    if (Math.abs(a.target - a.current) < 0.002) a.current = a.target;
-    if (a.ripple < 1) a.ripple = Math.min(1, a.ripple + dt / 1.5);
-    a.t += dt;
-    const settling = a.current !== a.target || a.ripple < 1;
-    // At rest the liquid moves slowly: half the frame rate is plenty.
-    a.frame += 1;
-    if (settling || a.frame % 2 === 0) draw();
-    if (stillRef.current && !settling) {
-      a.raf = 0;
-      a.last = 0;
-      return;
-    }
-    if (a.current <= 0 && a.target <= 0 && a.ripple >= 1) {
-      draw();
-      a.raf = 0;
-      a.last = 0;
-      return;
-    }
-    a.raf = requestAnimationFrame(tick);
-  }
-
-  function kick() {
-    const a = anim.current;
-    if (!engine.current) return;
-    if (stillRef.current) {
-      // Reduced motion: jump to the end state, one frame.
-      a.current = a.target;
-      a.ripple = 1;
-      draw();
-      return;
-    }
-    if (!a.raf) a.raf = requestAnimationFrame(tick);
-  }
 
   useEffect(() => {
     anim.current.target = Math.max(0, Math.min(1, melt));
-    kick();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    kickRef.current();
   }, [melt, still]);
 
   const rippleId = ripple?.id;
@@ -248,7 +249,8 @@ export function MeltSurface({ melt, ripple = null, still = false, className }: P
     if (!ripple || still) return;
     anim.current.ripple = 0;
     anim.current.origin = [ripple.x, ripple.y];
-    kick();
+    kickRef.current();
+    // Only a new ripple id starts a ripple.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rippleId]);
 

@@ -2,14 +2,15 @@ import { expect, test } from "@playwright/test";
 import { trackConsoleErrors } from "./helpers";
 
 const PAGES: Array<[string, RegExp]> = [
-  ["/", /Close your eyes/],
-  ["/play", /Play blindfolded/],
-  ["/train", /Train your/],
+  ["/", /Blindfold chess/],
+  ["/play", /Play blindfold chess/],
+  ["/train", /Train your vision/],
+  ["/train/memory", /Position memory/],
   ["/puzzles", /Blindfold puzzles/],
   ["/stats", /Your progress/],
-  ["/learn", /How to see/],
-  ["/settings", /Settings/],
-  ["/credits", /Credits/],
+  ["/learn", /See without looking/],
+  ["/settings", /Your settings/],
+  ["/credits", /Open credits/],
 ];
 
 for (const [path, heading] of PAGES) {
@@ -28,6 +29,8 @@ test("navigation and 404", async ({ page }) => {
   await expect(page).toHaveURL(/\/train$/);
   await page.goto("/no-such-page");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("This square is empty");
+  await page.getByRole("link", { name: "Back to the start" }).click();
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("keyboard users can skip to content", async ({ page }) => {

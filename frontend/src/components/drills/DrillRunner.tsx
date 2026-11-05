@@ -6,7 +6,7 @@
  */
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { ProgressLine } from "@/components/ui/Blocks";
 import { Button } from "@/components/ui/Button";
@@ -74,12 +74,21 @@ function readLevel(id: DrillId, max: number): number {
   }
 }
 
+const noop = () => () => {};
+
 export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [level, setLevelState] = useState(1);
+  // The level last used for this drill (localStorage), until one is picked here.
+  const remembered = useSyncExternalStore(
+    noop,
+    () => readLevel(meta.id, meta.levels.length),
+    () => 1,
+  );
+  const [picked, setPicked] = useState<number | null>(null);
+  const level = picked ?? remembered;
   const setLevel = useCallback(
     (l: number) => {
-      setLevelState(l);
+      setPicked(l);
       try {
         localStorage.setItem(`bf:drill-level:${meta.id}`, String(l));
       } catch {
@@ -150,17 +159,16 @@ export function DrillRunner<Q>({ meta, generate, Question }: Props<Q>) {
     setPhase("countdown");
   }, []);
 
-  // The remembered level, and ?go=1 (a tap on the Train hub) starts straight away.
+  // ?go=1 (a tap on the Train hub) starts straight away, at the remembered level.
   const autostarted = useRef(false);
   useEffect(() => {
     if (autostarted.current) return;
     autostarted.current = true;
-    setLevelState(readLevel(meta.id, meta.levels.length));
-    if (new URLSearchParams(window.location.search).get("go") === "1") {
-      window.history.replaceState(window.history.state, "", window.location.pathname);
-      begin();
-    }
-  }, [meta.id, meta.levels.length, begin]);
+    if (new URLSearchParams(window.location.search).get("go") !== "1") return;
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+    const t = window.setTimeout(begin, 0);
+    return () => window.clearTimeout(t);
+  }, [begin]);
 
   // Countdown 3-2-1, then the first question.
   useEffect(() => {

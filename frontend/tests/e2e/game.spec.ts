@@ -58,11 +58,9 @@ test.describe("blindfold game vs Stockfish", () => {
   });
 
   test("takes a move back and shows the clock", async ({ page }) => {
-    await page.goto("/play?e2e=1");
-    await page.getByTestId("visibility-full").click();
-    await page.getByTestId("level-1").click();
+    await startGame(page, { visibility: "full", level: 1 });
+    await page.getByTestId("more-options").click();
     await page.getByRole("radio", { name: "5+3" }).click();
-    await page.getByTestId("start-game").click();
     await expect(page.getByTestId("clock-you")).toBeVisible();
     const input = page.getByTestId("move-input");
     await waitForPlayerTurnOrEnd(page);

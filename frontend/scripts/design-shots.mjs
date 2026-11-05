@@ -14,6 +14,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { Chess } from "chess.js";
 
 const args = Object.fromEntries(
   process.argv
@@ -131,28 +132,25 @@ const STATES = {
     await page.waitForTimeout(250);
   },
   async check(page) {
+    // Full board, then play on until we can give check (any legal checking move), and show it.
     await page.goto(`${BASE}/play?e2e=1`);
     await page.getByTestId("game-screen").waitFor();
     await page.getByTestId("visibility-full").first().click();
-    for (const m of ["e4", "Bc4", "Qh5"]) await typeMove(page, m);
-    // Play on until the engine gives check or we give one: Qxf7+ is check if f7 is still defended weakly.
-    const s = await bfState(page);
-    if (s && !s.result) {
-      for (const m of ["Qxf7+", "Bxf7+", "Qxe5+", "Qh5"]) {
-        const st = await bfState(page);
-        if (!st || st.result) break;
-        const ok = await page.evaluate((san) => {
-          const st = window.__bf;
-          return !!st;
-        }, m);
-        if (!ok) break;
-        await typeMove(page, m);
-        const after = await bfState(page);
-        if (after && after.fen && after.moves.length && after.fen.includes("+")) break;
+    const opening = ["e4", "Bc4", "Qf3", "Nc3", "d3", "Nge2", "a3"];
+    for (let i = 0; i < 12; i++) {
+      await waitPlayerTurn(page);
+      const s = await bfState(page);
+      if (!s || s.result) break;
+      const chess = new Chess(s.fen);
+      const checking = chess.moves({ verbose: true }).find((m) => m.san.includes("+"));
+      if (checking) {
+        await typeMove(page, checking.san);
         break;
       }
+      const next = opening.find((m) => chess.moves().includes(m)) ?? chess.moves()[0];
+      await typeMove(page, next);
     }
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(700);
   },
   async "game-over"(page) {
     await page.goto(`${BASE}/play?e2e=1`);
