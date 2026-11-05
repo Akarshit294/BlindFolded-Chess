@@ -28,32 +28,34 @@ settings boot script; without JS the `prefers-color-scheme` media query applies)
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--studio-hi` | `#fafafa` | `#2c2c2c` | backdrop center |
-| `--studio-mid` | `#ececec` | `#1e1e1e` | backdrop middle, body fallback |
-| `--studio-lo` | `#d6d6d6` | `#121212` | backdrop edge |
+| `--studio-hi` | `#f4f4f4` | `#2f2f2f` | backdrop center |
+| `--studio-mid` | `#e4e4e4` | `#1d1d1d` | backdrop middle, body fallback |
+| `--studio-lo` | `#cbcbcb` | `#0e0e0e` | backdrop edge |
 | `--ink` | `#111111` | `#f2f2f2` | bold headings, primary button, focus ring |
 | `--text` | `#4a4a4a` | `#c4c4c4` | body text |
-| `--muted` | `#646464` | `#9c9c9c` | secondary text (≥ 4.5:1 on glass) |
-| `--faint` | `#7a7a7a` | `#8a8a8a` | thin display weight only (≥ 3:1, ≥ 24 px) |
+| `--muted` | `#5e5e5e` | `#9c9c9c` | secondary text (≥ 4.5:1 on glass) |
+| `--faint` | `#767676` | `#8a8a8a` | thin display weight only (≥ 3:1, ≥ 24 px) |
 | `--line` | `rgb(0 0 0 / .08)` | `rgb(255 255 255 / .08)` | hairlines |
-| `--glass` | `rgb(255 255 255 / .52)` | `rgb(32 32 32 / .55)` | stage |
-| `--glass-raised` | `rgb(255 255 255 / .72)` | `rgb(46 46 46 / .62)` | panels on the stage |
+| `--glass` | `rgb(255 255 255 / .42)` | `rgb(30 30 30 / .56)` | stage (flat fill, no backdrop blur: see DECISIONS) |
+| `--glass-raised` | `rgb(255 255 255 / .6)` | `rgb(255 255 255 / .045)` | panels on the stage |
 | `--glass-edge` | `rgb(255 255 255 / .85)` | `rgb(255 255 255 / .09)` | hairline border + inner highlight |
-| `--surface` | `#ffffff` | `#2b2b2b` | white pills, inputs |
-| `--good` | `#3c7a58` | `#86bd9c` | correct, best moves |
+| `--surface` | `#ffffff` | `#2a2a2a` | white pills, inputs |
+| `--good` | `#326b4b` | `#86bd9c` | correct, best moves |
 | `--bad` | `#a5443c` | `#e0928a` | wrong, check, blunder, loss |
-| `--warn` | `#8a6a1f` | `#d4b56c` | inaccuracy |
-| `--mistake` | `#9e5b26` | `#dca06b` | mistake |
+| `--warn` | `#7c5e19` | `#d4b56c` | inaccuracy |
+| `--mistake` | `#8f5120` | `#dca06b` | mistake |
 
 Board themes are monochrome too (Studio, Graphite, Ink, Paper, High contrast), each with light-UI and dark-UI
-square colors.
+square colors. The semantic colors were darkened in the accessibility pass so text keeps 4.5:1 on the lightest
+glass panels (values above are the shipped ones).
 
 ### Type
 
 - **Display:** Barlow Semi Condensed 300 (thin, `--faint`) + 700 (bold, `--ink`), uppercase via CSS
   (DOM text stays sentence case for screen readers), tracking +0.005em.
-- **Text:** Barlow 400 / 500 / 600, tabular figures for clocks, ratings and notation (no monospace).
-- Self-hosted woff2 from `@fontsource` through `next/font/local` (preload + metric-matched fallback).
+- **Text:** Barlow 400 / 600, tabular figures for clocks, ratings and notation (no monospace).
+- Self-hosted woff2 (Latin subsets taken from Fontsource) through `next/font/local` (preload + metric-matched
+  fallback). Text uses 400 and 600 only.
 
 | Step | Size / line height | Use |
 |---|---|---|
@@ -134,53 +136,54 @@ nav → puzzle 1 · game over → next game 1 · return visit → continue 1.
 - [x] This plan + `DECISIONS.md`
 
 ### Design system
-- [ ] Tokens (color, radius, shadow, blur, spacing, type, motion) as CSS variables + Tailwind theme
-- [ ] Barlow + Barlow Semi Condensed self-hosted via next/font/local
-- [ ] Theme setting (System / Light / Dark), boot script, meta theme-color
-- [ ] Primitives: Button family, Glass, DisplayTitle, PageHeader, Segmented, Toggle, Slider, Select, Chip, Kbd
-- [ ] Modal, Sheet, Popover, Toaster, Skeleton, EmptyState, StatTile, Disclosure
-- [ ] Remove the old palette (night/ivory/ember/moon/jade/coral) and fonts (Inter/Fraunces/JetBrains Mono)
+- [x] Tokens (color, radius, shadow, blur, spacing, type, motion) as CSS variables + Tailwind theme
+- [x] Barlow + Barlow Semi Condensed self-hosted via next/font/local
+- [x] Theme setting (System / Light / Dark), boot script, meta theme-color
+- [x] Primitives: Button family, Glass, DisplayTitle, PageHeader, Segmented, Toggle, Slider, Select, Chip, Kbd
+- [x] Modal, Toaster, Skeleton, EmptyState, StatTile, Disclosure (Sheet and Popover folded into Modal: see DECISIONS)
+- [x] Remove the old palette (night/ivory/ember/moon/jade/coral) and fonts (Inter/Fraunces/JetBrains Mono)
 
 ### 3D
-- [ ] Procedural pieces (lathe pawn/rook/bishop/queen/king, sculpted knight), porcelain + lacquer materials
-- [ ] Render lab + `scripts/render-3d.mjs`: piece sprites (light/dark), silhouette token, hero frames, DoF backdrop pieces
-- [ ] Lazy R3F hero scene on capable desktops; static frames elsewhere (no WebGL, reduced motion, low-end)
+- [x] Procedural pieces (lathe pawn/rook/bishop/queen/king, sculpted knight), porcelain + lacquer materials
+- [x] Render lab + `scripts/render-3d.mjs`: piece sprites (light/dark), silhouette token, hero frames, DoF backdrop pieces
+- [x] Lazy R3F hero scene on capable desktops; static frames elsewhere (no WebGL, reduced motion, low-end)
 
 ### Shell
-- [ ] Studio backdrop with depth-of-field pieces and pointer/scroll parallax (off with reduced motion)
-- [ ] Glass stage, header (pawn mark + wordmark, nav, settings), mobile menu + dock, footer
-- [ ] Page transitions (fade/rise, melt into a game), header anchored
+- [x] Studio backdrop with depth-of-field pieces and pointer/scroll parallax (off with reduced motion)
+- [x] Glass stage, header (pawn mark + wordmark, nav, settings), mobile menu + dock, footer
+- [x] Page transitions (fade/rise, melt into a game), header anchored
 
 ### Home and flow
-- [ ] Hero with Play now / Continue game / New game, setup summary + Change popover
-- [ ] Showcases: modes (start in that mode), input, train, puzzles, progress
-- [ ] `/play` auto-starts with the remembered setup; quick setup before the first move
-- [ ] Game over in place: reveal, result, review on the same board, Play again / Change setup
-- [ ] Mobile: full-width board, sticky move bar above the keyboard, dock hidden in a game
+- [x] Hero with Play now / Continue game / New game, setup summary + Change (a small dialog)
+- [x] Showcases: modes (start in that mode), input, train, puzzles, progress
+- [x] `/play` auto-starts with the remembered setup; quick setup before the first move
+- [x] Game over in place: reveal, result, review on the same board, Play again / Change setup
+- [x] Mobile: full-width board, sticky move bar above the keyboard, dock hidden in a game
 
 ### Board
-- [ ] Monochrome board themes, gloss sprites with Lumen/Classic fallbacks
-- [ ] Melt surface: ripple on hide, liquid at rest, solid on peek; CSS fallback; reduced-motion still frame
-- [ ] Restyle: drag lift, spring moves, capture shatter, castling, check glow, mist, trail, flash, promotion, arrows
-- [ ] Total blindfold stage (the melted pool), eval bar, eval graph, monochrome confetti
+- [x] Monochrome board themes, gloss sprites with Lumen/Classic fallbacks
+- [x] Melt surface: ripple on hide, liquid at rest, solid on peek; CSS fallback; reduced-motion still frame
+- [x] Restyle: drag lift, spring moves, capture shatter, castling, check glow, mist, trail, flash, promotion, arrows
+- [x] Total blindfold stage (the melted pool), eval bar, eval graph, monochrome confetti
 
 ### Pages
-- [ ] Train hub + one-tap start + remembered level
-- [ ] Six drills (intro, countdown, running, feedback, done)
-- [ ] Puzzles
-- [ ] Stats + charts
-- [ ] Learn
-- [ ] Settings (incl. theme)
-- [ ] Credits, 404
-- [ ] Remove dead code from the old UI
+- [x] Train hub + one-tap start + remembered level
+- [x] Six drills (intro, countdown, running, feedback, done)
+- [x] Puzzles
+- [x] Stats + charts
+- [x] Learn
+- [x] Settings (incl. theme)
+- [x] Credits, 404
+- [x] Remove dead code from the old UI
 
 ### Quality
-- [ ] Vitest updated + new unit tests
-- [ ] Playwright updated + new flow tests (home → game in one click, play, game over, play again, continue)
-- [ ] `make test`, `make lint`, `make e2e`, `next build` green; CI green
-- [ ] Lighthouse mobile `/`: performance ≥ 85, accessibility 100
-- [ ] Polish pass 1: visual fidelity to the reference
-- [ ] Polish pass 2: flow and friction (click counts)
-- [ ] Polish pass 3: motion, performance, accessibility (ui-ux-pro-max §1–9 + quick reference)
-- [ ] After screenshots in `docs/design/after/`, README screenshots, `REDESIGN_REPORT.md`, CREDITS.md
+- [x] Vitest updated + new unit tests
+- [x] Playwright updated + new flow tests (home → game in one click, play, game over, play again, continue)
+- [x] `make test`, `make lint`, `make e2e` (54/54 with the backend), `next build` green
+- [ ] CI green on the pull request
+- [x] Lighthouse mobile `/`: performance ≥ 85, accessibility 100 (87 / 100; best practices 96, SEO 100)
+- [x] Polish pass 1: visual fidelity to the reference
+- [x] Polish pass 2: flow and friction (click counts)
+- [x] Polish pass 3: motion, performance, accessibility (ui-ux-pro-max §1–9 + quick reference)
+- [x] After screenshots in `docs/design/after/`, README screenshots, `REDESIGN_REPORT.md`, CREDITS.md
 - [ ] Pull request to `main` with before/after images
